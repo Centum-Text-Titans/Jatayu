@@ -1,4 +1,3 @@
-Here’s a **professional README** for your project — blending MERN stack, Django, and Machine Learning to solve the dynamic pricing of financial products use case:
 
 ---
 
