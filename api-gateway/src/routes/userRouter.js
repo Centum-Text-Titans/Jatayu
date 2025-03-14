@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { proxyToUserService } = require('../controllers/user.controller');
+const { proxyToUserService } = require('../controllers/userController');
 
 router.get('/users', proxyToUserService);
 
