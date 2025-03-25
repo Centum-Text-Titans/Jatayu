@@ -2,9 +2,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const UserModel = require('../models/userModel');
 
-const maxAge = 3 * 24 * 60 * 60 * 1000;
+const maxAge = process.env.REACT_APP_MAX_AGE;
 
-const { v4: uuidv4 } = require('uuid');
 
 // Generate JWT Token
 const generateToken = (user) => {
@@ -15,41 +14,7 @@ const generateToken = (user) => {
     );
 };
 
-// Signup Controller
-const signup = async (req, res) => {
-    try {
-        console.log('Signup Request:', req.body);
-        console.log('Signup Request:', process.env.REACT_APP_SECRET_KEY);
 
-        // Check if the user already exists
-        const existingUser = await UserModel.findOne({ 
-            $or: [{ username: req.body.uname }, { email: req.body.mail }] 
-        });
-
-        if (existingUser) {
-            return res.status(400).json({ message: 'User already exists' });
-        }
-
-        // Hash the password before storing it
-        const hashedPassword = await bcrypt.hash(req.body.password, 10);
-
-        // Create a new user
-        const newUser = new UserModel({
-            username: req.body.uname,
-            email: req.body.mail,
-            role: req.body.role, // Ensure role is set correctly
-            password: hashedPassword,
-        });
-
-        const result = await newUser.save();
-        console.log('User saved:', result);
-
-        res.status(201).json({ message: 'User registered successfully' });
-    } catch (error) {
-        console.error('Signup error:', error);
-        res.status(500).json({ message: 'Internal server error' });
-    }
-};
 
 // Login Controller
 const login = async (req, res) => {
@@ -57,9 +22,32 @@ const login = async (req, res) => {
     const { identifier, password } = req.body;
 
     try {
-        const user = await UserModel.findOne({
-            $or: [{ username: identifier }, { email: identifier }],
-        });
+        // Check if the credentials match the admin credentials from the environment variables
+        const isAdmin = (identifier === process.env.REACT_APP_ADMIN_ID) && (password === process.env.REACT_APP_ADMIN_KEY);
+
+        if (isAdmin) {
+            console.log("Admin login successful");
+
+            // Use admin credentials from environment variables
+            const adminUser = {
+                username: process.env.REACT_APP_ADMIN_ID,
+                role: process.env.REACT_APP_ADMIN_ROLE || "admin", // Default to "admin" if not set
+            };
+
+            // Generate a token for the admin user
+            const token = generateToken(adminUser);
+
+            res.cookie("jwt", token, {
+                withCredentials: true,
+                httpOnly: true,
+                maxAge: maxAge,
+            });
+
+            return res.json({ status: 'success', token, created: true, user: adminUser.username, role: adminUser.role });
+        }
+
+        // Normal user authentication via MongoDB
+        const user = await UserModel.findOne({ username: identifier });
 
         if (!user) {
             console.log("User not found");
@@ -67,13 +55,13 @@ const login = async (req, res) => {
         }
 
         // Compare the provided password with the stored hashed password
-        const isMatch = bcrypt.compare(password, user.password);
+        const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             console.log("Incorrect password");
             return res.status(401).json({ error: 'IncorrectPassword', message: 'Incorrect password' });
         }
 
-        // Generate JWT token   
+        // Generate a JWT token for the user
         const token = generateToken(user);
 
         res.cookie("jwt", token, {
@@ -88,6 +76,7 @@ const login = async (req, res) => {
         res.sendStatus(500);
     }
 };
+
 
 // Get Profile Controller
 const getProfile = (req, res) => {
@@ -106,12 +95,7 @@ const getProfile = (req, res) => {
 };
 
 
-
-
-
-
 module.exports = {
-    signup,
     login,
     getProfile,
 };

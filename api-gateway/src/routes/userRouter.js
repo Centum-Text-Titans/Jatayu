@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { proxyToUserService } = require('../controllers/userController');
+const userController = require('../controllers/userController');
 
-router.get('/users', proxyToUserService);
+router.get('/profile', userController.getProfile);
 
 module.exports = router;

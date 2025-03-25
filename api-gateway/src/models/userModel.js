@@ -1,41 +1,42 @@
-// models/userModel.js
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
+    id: {
+        type: String,
+        unique: true,
+        required: true,
+    },
     username: {
         type: String,
         unique: true,
+        required: true,
     },
-    email: {
+    role: {
         type: String,
-        unique: true,
+        required: true,
     },
-    role: String,
-    password: String,
+    password: {
+        type: String,
+        required: true,
+    }
 }, { versionKey: false });
 
+// Hash password before saving
 userSchema.pre('save', function (next) {
     const user = this;
 
-    if (this.isModified('password') || this.isNew) {
-        bcrypt.genSalt(10, function (saltError, salt) {
-            if (saltError) {
-                return next(saltError);
-            } else {
-                bcrypt.hash(user.password, salt, function (hashError, hash) {
-                    if (hashError) {
-                        return next(hashError);
-                    }
+    if (!user.isModified('password')) return next();
 
-                    user.password = hash;
-                    next();
-                });
-            }
+    bcrypt.genSalt(10, function (err, salt) {
+        if (err) return next(err);
+
+        bcrypt.hash(user.password, salt, function (err, hash) {
+            if (err) return next(err);
+            user.password = hash;
+            next();
         });
-    } else {
-        return next();
-    }
+    });
 });
 
 const UserModel = mongoose.model('signupdetail', userSchema);

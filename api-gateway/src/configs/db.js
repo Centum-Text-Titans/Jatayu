@@ -1,14 +1,16 @@
 const mongoose = require('mongoose');
 
-exports.connectDB = async () => {
+const connectDB = async () => {
     try {
-        await mongoose.connect(process.env.MONGO_URI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        });
-        console.log('MongoDB connected');
+        if (!process.env.REACT_APP_MONGO_LINK) {
+            throw new Error('MongoDB connection string is not defined in the environment variables');
+        }
+        await mongoose.connect(process.env.REACT_APP_MONGO_LINK);
+        console.log('MongoDB connected successfully');
     } catch (err) {
-        console.error('DB connection failed:', err.message);
-        process.exit(1);
+        console.error('MongoDB connection failed:', err.message);
+        process.exit(1); // Exits the process if connection fails
     }
 };
+
+module.exports = connectDB; // Ensure proper export
