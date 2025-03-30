@@ -1,141 +1,91 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import axios from "axios";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
+import { UserContext } from "../context/UserContext";
+import Cookies from "js-cookie";
 
 export default function Login() {
     const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
     const [passwordVisible, setPasswordVisible] = useState(false);
-    const [isLoading, setIsLoading] = useState(false); // For loading state
+    const [isLoading, setIsLoading] = useState(false);
+
+    const { setLoggedIn, setUserRole, setUserName } = useContext(UserContext);
     const navigate = useNavigate();
-
-    // Get the environment variable for the backend URL
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
-
-    const togglePasswordVisibility = () => {
-        setPasswordVisible(!passwordVisible);
-    };
 
     const handleFormSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
         try {
-            const response = await axios.post(`${backendUrl}/api/login`, {
-                identifier,
-                password,
-            }, { withCredentials: true });
-    
+            const response = await axios.post(`${backendUrl}/login`, { identifier, password }, { withCredentials: true });
+
             if (response.data.status === "success") {
-                try {
-                    const profileResponse = await axios.get(`${backendUrl}/profile`, { withCredentials: true });
-                    const { username, role } = profileResponse.data;
-    
-                    // Store user details in localStorage
-                    localStorage.setItem("loggedUser", username);
-                    localStorage.setItem("userRole", role);
-    
-                    // Redirect user based on role
-                    if (role === "examiner") {
-                        navigate("/examiner-dashboard");
-                    } else if (role === "student") {
-                        navigate("/student-dashboard");
-                    } else {
-                        navigate("/leaderboard"); // Default route
-                    }
-                } catch (error) {
-                    console.error("Error fetching user profile", error);
-                    toast.error("Error fetching profile, please try again.");
-                }
+                const profileResponse = await axios.get(`${backendUrl}/profile`, { withCredentials: true });
+                const { username, role } = profileResponse.data;
+
+                setLoggedIn(true);
+                setUserRole(role);
+                setUserName(username);
+                Cookies.set("jwt", response.data.token, { expires: 1000000 });
+
+                navigate(`/${role}`);
             }
         } catch (error) {
-            setIsLoading(false); // Stop loading on error
+            setIsLoading(false);
             console.error(error);
-            if (error.response) {
-                const errorMessage = error.response.data.error;
-                if (errorMessage === "UserNotFound") {
-                    toast.error("User not found");
-                } else if (errorMessage === "IncorrectPassword") {
-                    toast.error("Incorrect password");
-                } else {
-                    toast.error("Login failed");
-                }
-            } else {
-                toast.error("Network error, please try again.");
-            }
+            toast.error("Invalid credentials or network error.");
         }
     };
-    
 
     return (
-        <div className="flex justify-center items-center h-screen bg-gray-100">
-            <ToastContainer
-                position="bottom-right"
-                autoClose={1400}
-                hideProgressBar={false}
-                newestOnTop={false}
-                closeOnClick
-                rtl={false}
-                pauseOnFocusLoss
-                draggable
-                pauseOnHover
-                theme="light"
-            />
-            <div className="w-full max-w-md bg-white p-8 rounded-lg shadow-lg">
-                <h1 className="text-3xl font-semibold text-center mb-6">Login</h1>
+        <div className="flex justify-center items-start min-h-screen bg-gradient-to-r from-blue-100 via-green-100 to-teal-100 pt-20">
+            <ToastContainer position="bottom-right" autoClose={1400} />
+            
+            <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg transform transition-all hover:scale-105">
+                <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">Log In</h1>
                 <form onSubmit={handleFormSubmit}>
                     <div className="mb-4">
-                        <label htmlFor="identifier" className="block text-sm font-medium text-gray-600">Username</label>
+                        <label className="block text-sm font-semibold text-gray-600 mb-1">Username</label>
                         <input
                             type="text"
-                            id="identifier"
-                            name="identifier"
                             placeholder="Enter your username"
                             value={identifier}
                             onChange={(e) => setIdentifier(e.target.value)}
-                            className="w-full px-4 py-2 mt-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
                         />
                     </div>
 
                     <div className="mb-4">
-                        <label htmlFor="password" className="block text-sm font-medium text-gray-600">Password</label>
-                        <input
-                            type={passwordVisible ? 'text' : 'password'}
-                            id="password"
-                            name="password"
-                            placeholder="Enter your password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full px-4 py-2 mt-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
-
-                    <div className="flex items-center mb-6">
-                        <input
-                            type="checkbox"
-                            id="showConfirmPassword"
-                            onChange={togglePasswordVisibility}
-                            className="form-checkbox h-4 w-4 text-blue-500"
-                        />
-                        <label htmlFor="showConfirmPassword" className="ml-2 text-sm text-gray-600">Show password</label>
+                        <label className="block text-sm font-semibold text-gray-600 mb-1">Password</label>
+                        <div className="relative">
+                            <input
+                                type={passwordVisible ? "text" : "password"}
+                                placeholder="Enter your password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setPasswordVisible(!passwordVisible)}
+                                className="absolute right-3 top-3 text-gray-500 hover:text-blue-500 focus:outline-none"
+                            >
+                                {passwordVisible ? "🙈" : "👁"}
+                            </button>
+                        </div>
                     </div>
 
                     <button
                         type="submit"
-                        className={`w-full py-2 mt-4 text-white bg-blue-500 hover:bg-blue-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                         disabled={isLoading}
+                        className="w-full py-3 text-lg font-semibold text-white bg-gradient-to-r from-blue-500 to-teal-500 rounded-lg shadow-md hover:from-blue-600 hover:to-teal-600 focus:ring-4 focus:ring-blue-300 focus:outline-none transform transition-transform hover:scale-105"
                     >
-                        {isLoading ? 'Logging in...' : 'Login'}
+                        {isLoading ? "Logging in..." : "Login"}
                     </button>
                 </form>
-
-                <div className="mt-4 text-center text-sm text-gray-600">
-                    <p>
-                        Don't have an account?{' '}
-                        <Link to="/signup" className="text-blue-500 hover:text-blue-700">Sign up</Link>
-                    </p>
-                </div>
             </div>
         </div>
     );
-}
+}   

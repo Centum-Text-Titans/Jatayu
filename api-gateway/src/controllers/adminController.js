@@ -19,15 +19,12 @@ const addUser = async (req, res) => {
             return res.status(400).json({ message: 'User already exists' });
         }
 
-        // Hash the password before storing it
-        const hashedPassword = await bcrypt.hash(req.body.password, 10);
-
         // Create a new user
         const newUser = new UserModel({
             id: generateUniqueId(),
             username: req.body.username,
-            role: req.body.role, // Ensure role is set correctly
-            password: hashedPassword,
+            role: req.body.role, 
+            password: req.body.password,
         });
 
         const result = await newUser.save();

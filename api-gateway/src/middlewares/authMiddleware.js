@@ -22,30 +22,7 @@ const login = async (req, res) => {
     const { identifier, password } = req.body;
 
     try {
-        // Check if the credentials match the admin credentials from the environment variables
-        const isAdmin = (identifier === process.env.REACT_APP_ADMIN_ID) && (password === process.env.REACT_APP_ADMIN_KEY);
-
-        if (isAdmin) {
-            console.log("Admin login successful");
-
-            // Use admin credentials from environment variables
-            const adminUser = {
-                username: process.env.REACT_APP_ADMIN_ID,
-                role: process.env.REACT_APP_ADMIN_ROLE || "admin", // Default to "admin" if not set
-            };
-
-            // Generate a token for the admin user
-            const token = generateToken(adminUser);
-
-            res.cookie("jwt", token, {
-                withCredentials: true,
-                httpOnly: true,
-                maxAge: maxAge,
-            });
-
-            return res.json({ status: 'success', token, created: true, user: adminUser.username, role: adminUser.role });
-        }
-
+ 
         // Normal user authentication via MongoDB
         const user = await UserModel.findOne({ username: identifier });
 
@@ -53,9 +30,20 @@ const login = async (req, res) => {
             console.log("User not found");
             return res.status(401).json({ error: 'UserNotFound', message: 'User not found' });
         }
+        console.log(user);
 
         // Compare the provided password with the stored hashed password
+
+        console.log("Stored Hash:", user.password);
+        console.log("Entered Password:", password);
+        console.log("Password Match:", await bcrypt.compare(password, user.password));
+
         const isMatch = await bcrypt.compare(password, user.password);
+        console.log(isMatch);
+
+        const isMatch1 = bcrypt.compareSync(req.body.password, user.password);
+        console.log("Synchronous Password Match:", isMatch1);
+
         if (!isMatch) {
             console.log("Incorrect password");
             return res.status(401).json({ error: 'IncorrectPassword', message: 'Incorrect password' });
@@ -81,6 +69,8 @@ const login = async (req, res) => {
 // Get Profile Controller
 const getProfile = (req, res) => {
     const token = req.cookies.jwt;
+    console.log("im cooked");
+    console.log(token);
     
     if (!token) {
         return res.status(401).json({ message: 'No token found' });

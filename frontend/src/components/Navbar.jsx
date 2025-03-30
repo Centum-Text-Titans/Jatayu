@@ -1,90 +1,59 @@
-import { useState } from "react";
-import { Link, useLocation } from "react-router-dom"; // Importing Link and useLocation
+import { useState, useContext } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { UserContext } from "../context/UserContext";
+import Cookies from "js-cookie";
 
 export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
-    const location = useLocation(); // Get current route
+    const { loggedIn, userName, setLoggedIn, setUserRole, setUserName } = useContext(UserContext);
+    const location = useLocation();
+    const navigate = useNavigate();
 
-    // Function to determine if the link is active
-    const isActive = (path) => location.pathname === path ? "active" : "";
+    const isActive = (path) => location.pathname === path ? "text-gray-300" : "text-white";
+
+    const handleLogout = () => {
+        Cookies.remove("jwt");
+        setLoggedIn(false);
+        setUserRole("");
+        setUserName("");
+        navigate("/");
+    };
 
     return (
-        <nav className="navbar">
-            <div className="container mx-auto px-4 flex justify-between items-center">
-                <div className="text-2xl font-bold text-white">
-                    <a href="/" className="flex items-center space-x-2">
-                        <span>🤖 Dynamic Interest Rate AI</span>
-                    </a>
-                </div>
+        <nav className="bg-blue-500 p-4 flex justify-between items-center">
+            <Link to="/" className="text-white text-2xl font-bold">Dynamic AI Interest Rate</Link>
 
-                {/* Desktop Menu */}
-                <div className="hidden md:flex space-x-6">
-                    <Link
-                        to="/login"
-                        className={`text-white hover:text-white hover:bg-blue-600 px-3 py-2 rounded-md text-lg transition-all ${isActive("/login")}`}
-                    >
-                        Login
-                    </Link>
-                 
-                    <Link
-                        to="/about"
-                        className={`text-white hover:text-white hover:bg-blue-600 px-3 py-2 rounded-md text-lg transition-all ${isActive("/about")}`}
-                    >
-                        About
-                    </Link>
-                </div>
-
-                {/* Mobile Menu Hamburger */}
-                <div className="md:hidden">
-                    <button
-                        onClick={() => setIsOpen(!isOpen)}
-                        className="text-white focus:outline-none"
-                    >
-                        <svg
-                            className="h-6 w-6"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            {isOpen ? (
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M6 18L18 6M6 6l12 12"
-                                />
-                            ) : (
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M4 6h16M4 12h16M4 18h16"
-                                />
-                            )}
-                        </svg>
-                    </button>
-                </div>
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex space-x-6">
+                {loggedIn ? (
+                    <>
+                        <span className="text-white">Welcome, {userName}</span>
+                        <button onClick={handleLogout} className="text-white bg-red-500 px-3 py-1 rounded">Logout</button>
+                    </>
+                ) : (
+                    <Link to="/login" className={`text-white ${isActive("/login")}`}>Login</Link>
+                )}
             </div>
 
-            {/* Mobile Menu */}
+            {/* Mobile Navigation (Hamburger Menu) */}
+            <div className="md:hidden flex items-center">
+                <button onClick={() => setIsOpen(!isOpen)} className="text-white text-3xl">
+                    {isOpen ? "×" : "☰"}
+                </button>
+            </div>
+
+            {/* Mobile Dropdown Menu */}
             {isOpen && (
-                <div className="md:hidden bg-white shadow-lg rounded-lg p-4 absolute top-16 left-0 right-0 z-40 transition-transform transform duration-300">
-                    <div className="flex flex-col items-center space-y-4">
-                        <Link
-                            to="/login"
-                            className={`text-lg text-black px-4 py-2 rounded-lg transition-all ${isActive("/login")}`}
-                        >
-                            Login
-                        </Link>
-                       
-                        <Link
-                            to="/about"
-                            className={`text-lg text-black px-4 py-2 rounded-lg transition-all ${isActive("/about")}`}
-                        >
-                            About
-                        </Link>
-                    </div>
+                <div className="md:hidden absolute top-16 left-0 w-full bg-blue-500 flex flex-col items-center space-y-4 py-4">
+                    <Link to="/about" className={`text-white ${isActive("/about")}`}>About</Link>
+                    {loggedIn ? (
+                        <>
+                            <span className="text-white">Welcome, {userName}</span>
+                            <button onClick={handleLogout} className="text-white bg-red-500 px-3 py-1 rounded">Logout</button>
+                        </>
+                    ) : (
+                        <Link to="/login" className={`text-white ${isActive("/login")}`}>Login</Link>
+                    )}
                 </div>
             )}
         </nav>

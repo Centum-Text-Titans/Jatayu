@@ -16,7 +16,7 @@ export default function Users() {
 
     const fetchUsers = async () => {
         try {
-            const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/admin/listUsers`);
+            const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/admin/listUsers`);
             setUsers(response.data);
         } catch (err) {
             console.error("Error fetching users:", err);
@@ -29,7 +29,7 @@ export default function Users() {
 
     const handleAddUser = async () => {
         try {
-            const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/admin/addUser`, newUser, {
+            const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/admin/addUser`, newUser, {
                 headers: { "Content-Type": "application/json" },
             });
 
@@ -51,7 +51,7 @@ export default function Users() {
         if (!deleteUserId) return;
 
         try {
-            const response = await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/admin/deleteUser/${deleteUserId}`);
+            const response = await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/admin/deleteUser/${deleteUserId}`);
 
             if (response.status === 200) {
                 alert("User deleted successfully!");
@@ -122,25 +122,55 @@ export default function Users() {
                 </table>
             </div>
 
-            {/* Add User Modal */}
             {showModal && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-30 backdrop-blur-sm">
-                    <div className="bg-white p-6 rounded shadow-md w-96">
-                        <h2 className="text-lg font-semibold mb-4">Add New User</h2>
-                        <input type="text" name="username" placeholder="Username" className="w-full p-2 mb-2 border rounded" onChange={handleChange} value={newUser.username} />
-                        <select name="role" className="w-full p-2 mb-2 border rounded" onChange={handleChange} value={newUser.role}>
+                <div className="fixed inset-0 flex items-center justify-center bg-gray-200 bg-opacity-50 backdrop-blur-sm">
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-96 animate-fadeIn">
+                        <h2 className="text-lg font-semibold mb-4 text-gray-800">Add New User</h2>
+                        <input
+                            type="text"
+                            name="username"
+                            placeholder="Username"
+                            className="w-full p-2 mb-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            onChange={handleChange}
+                            value={newUser.username}
+                        />
+                        <select
+                            name="role"
+                            className="w-full p-2 mb-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            onChange={handleChange}
+                            value={newUser.role}
+                        >
                             <option value="user">User</option>
                             <option value="admin">Admin</option>
                             <option value="employee">Employee</option>
                         </select>
-                        <input type="password" name="password" placeholder="Password" className="w-full p-2 mb-2 border rounded" onChange={handleChange} value={newUser.password} />
+                        <input
+                            type="password"
+                            name="password"
+                            placeholder="Password"
+                            className="w-full p-2 mb-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            onChange={handleChange}
+                            value={newUser.password}
+                        />
                         <div className="flex justify-end gap-2 mt-4">
-                            <button className="bg-gray-400 px-3 py-1 rounded" onClick={() => setShowModal(false)}>Cancel</button>
-                            <button className="bg-green-500 text-white px-3 py-1 rounded" onClick={handleAddUser}>Add</button>
+                            <button
+                                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition"
+                                onClick={() => setShowModal(false)}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+                                onClick={handleAddUser}
+                            >
+                                Add
+                            </button>
                         </div>
                     </div>
                 </div>
             )}
+
+
 
             {/* Delete Confirmation Modal */}
             {deleteUserId && (
