@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const UserModel = require('../models/userModel');
 
-const maxAge = process.env.REACT_APP_MAX_AGE;
+
 
 
 // Generate JWT Token
@@ -24,6 +24,7 @@ const login = async (req, res) => {
     try {
  
         // Normal user authentication via MongoDB
+        // console.log(process.env);    
         const user = await UserModel.findOne({ username: identifier });
 
         if (!user) {
@@ -39,10 +40,9 @@ const login = async (req, res) => {
         console.log("Password Match:", await bcrypt.compare(password, user.password));
 
         const isMatch = await bcrypt.compare(password, user.password);
-        console.log(isMatch);
+        console.log("Password Matching",isMatch);
 
-        const isMatch1 = bcrypt.compareSync(req.body.password, user.password);
-        console.log("Synchronous Password Match:", isMatch1);
+
 
         if (!isMatch) {
             console.log("Incorrect password");
@@ -51,11 +51,12 @@ const login = async (req, res) => {
 
         // Generate a JWT token for the user
         const token = generateToken(user);
+       
 
         res.cookie("jwt", token, {
             withCredentials: true,
-            httpOnly: true,
-            maxAge: maxAge,
+            httpOnly: false,
+            maxAge: process.env.REACT_APP_MAX_AGE,
         });
 
         res.json({ status: 'success', token, created: true, user: user.username, role: user.role });

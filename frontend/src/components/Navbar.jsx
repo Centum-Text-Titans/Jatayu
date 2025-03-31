@@ -1,24 +1,50 @@
-import { useState, useContext } from "react";
+import { useState,useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { UserContext } from "../context/UserContext";
 import Cookies from "js-cookie";
+import axios from "axios";
 
 export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
-    const { loggedIn, userName, setLoggedIn, setUserRole, setUserName } = useContext(UserContext);
+    const [loggedIn, setIsLoggedIn] = useState(false);
+    const [userName, setUserName] = useState(false);
+    const API_URL = import.meta.env.VITE_BACKEND_URL;
+
     const location = useLocation();
     const navigate = useNavigate();
+    useEffect(() => {
+        const checkAuthenticationStatus = async () => {
+            try {
+                const response = await axios.get(`${API_URL}/profile`, { withCredentials: true });
+                setUserName(response.data.username)
+                if(response.data.username!=null){
+
+                    setIsLoggedIn(true);
+                }
+            } catch (error) {
+                console.error("Authentication check failed:", error);
+                setIsLoggedIn(false);
+
+            }
+        };
+
+        checkAuthenticationStatus();
+    }, []);
 
     const isActive = (path) => location.pathname === path ? "text-gray-300" : "text-white";
 
     const handleLogout = () => {
-        Cookies.remove("jwt");
-        setLoggedIn(false);
-        setUserRole("");
-        setUserName("");
+        // Get all cookies
+        document.cookie.split(";").forEach((cookie) => {
+            const cookieName = cookie.split("=")[0].trim();
+            // Remove each cookie by setting its expiration date in the past
+            Cookies.remove(cookieName);
+        });
+    
+        // Redirect to homepage
         navigate("/");
+        window.location.reload();
     };
-
+    
     return (
         <nav className="bg-blue-500 p-4 flex justify-between items-center">
             <Link to="/" className="text-white text-2xl font-bold">Dynamic AI Interest Rate</Link>

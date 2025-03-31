@@ -6,11 +6,12 @@ export default function Home() {
 
     // Open-source images from Unsplash based on relevant search queries
     const carouselImages = [
-        "https://source.unsplash.com/800x600/?house,loan",
-        "https://source.unsplash.com/800x600/?home,interior",
-        "https://source.unsplash.com/800x600/?bank,loan",
-        "https://source.unsplash.com/800x600/?fixed,deposit",
+        "HouseLoan.jpg",
+        "HouseLoan1.jpg",
+        "fixedDeposit.jpg",
+        "fixedDeposit1.jpg"
     ];
+    
 
     const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -35,7 +36,7 @@ export default function Home() {
             </header>
 
             {/* Carousel */}
-            <div className="relative w-full h-64 md:h-96 rounded-xl overflow-hidden shadow-lg mb-10">
+            <div className="relative w-full h-64 md:h-125 rounded-xl overflow-hidden shadow-lg mb-10">
                 {carouselImages.map((img, index) => (
                     <div
                         key={index}

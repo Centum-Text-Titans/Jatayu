@@ -1,9 +1,7 @@
-import { useState, useContext } from "react";
+import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
-import { UserContext } from "../context/UserContext";
-import Cookies from "js-cookie";
 
 export default function Login() {
     const [identifier, setIdentifier] = useState('');
@@ -11,7 +9,6 @@ export default function Login() {
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
-    const { setLoggedIn, setUserRole, setUserName } = useContext(UserContext);
     const navigate = useNavigate();
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -23,17 +20,11 @@ export default function Login() {
 
             if (response.data.status === "success") {
                 const profileResponse = await axios.get(`${backendUrl}/profile`, { withCredentials: true });
-                const { username, role } = profileResponse.data;
-
-                setLoggedIn(true);
-                setUserRole(role);
-                setUserName(username);
-                Cookies.set("jwt", response.data.token, { expires: 1000000 });
-
+                const {  role } = profileResponse.data;
                 navigate(`/${role}`);
+                window.location.reload();
             }
         } catch (error) {
-            setIsLoading(false);
             console.error(error);
             toast.error("Invalid credentials or network error.");
         }
