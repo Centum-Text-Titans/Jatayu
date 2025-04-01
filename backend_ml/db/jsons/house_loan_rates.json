@@ -1,0 +1,34 @@
+{
+    "Regular Home Loan": {
+        "from_rate": 8.25,
+        "to_rate": 9.2
+    },
+    "Top-up Loan": {
+        "from_rate": 8.55,
+        "to_rate": 11.05
+    },
+    "Tribal Plus": {
+        "from_rate": 8.35,
+        "to_rate": 9.3
+    },
+    "P-LAP": {
+        "from_rate": 9.75,
+        "to_rate": 11.05
+    },
+    "Reverse Mortgage Loan": {
+        "from_rate": 11.3,
+        "to_rate": 11.3
+    },
+    "YONO Insta Home Top Up": {
+        "from_rate": 9.1,
+        "to_rate": 9.1
+    },
+    "Home Loan Maxgain (OD)": {
+        "from_rate": 8.45,
+        "to_rate": 9.4
+    },
+    "Top Up (OD) Loan": {
+        "from_rate": 8.75,
+        "to_rate": 9.7
+    }
+}

@@ -48,7 +48,7 @@ export default function App() {
                 {/* Fallback Route */}
                 <Route path="*" element={<Home />} />
             </Routes>
-            <Footer />
+            {/* <Footer /> */}
         </Router>
     );
 }

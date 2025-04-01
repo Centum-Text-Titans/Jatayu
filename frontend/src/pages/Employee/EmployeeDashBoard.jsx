@@ -2,16 +2,16 @@ import React, { useState } from "react";
 import IssueFD from "../FixedDeposits/IssueFD";
 import FDHistory from "../FixedDeposits/FDHistory";
 import IssueHouseLoan from "../HouseLoans/IssueHouseLoan";
-import AdjustRate from "../HouseLoans/AdjustRate";
+import CalculateRate from "../FixedDeposits/CalculateRate";
 import HLHistory from "../HouseLoans/HLHistory";
 import ChatBot from "../Tools/Chatbot";
 
 
 export default function EmployeeDashboard() {
     // State for the main toggle: "fd" = Fixed Deposits, "hl" = House Loans.
-    const [activeLoanType, setActiveLoanType] = useState("fd");
+    const [activeLoanType, setActiveLoanType] = useState("hl");
     // State for the secondary navigation within each mode.
-    const [activeSubMenu, setActiveSubMenu] = useState("issue_fd");
+    const [activeSubMenu, setActiveSubMenu] = useState("issue_hl");
 
     // Render main content based on the current sub-menu selection.
     const renderContent = () => {
@@ -20,7 +20,7 @@ export default function EmployeeDashboard() {
             if (activeSubMenu === "fd_history") return <FDHistory />;
         } else if (activeLoanType === "hl") {
             if (activeSubMenu === "issue_hl") return <IssueHouseLoan />;
-            if (activeSubMenu === "adjust_rate") return <AdjustRate />;
+            if (activeSubMenu === "calculate_rate") return <CalculateRate />;
             if (activeSubMenu === "hl_history") return <HLHistory />;
         }
         return <div>Select an option from the menu.</div>;
@@ -34,18 +34,7 @@ export default function EmployeeDashboard() {
                 <div className="flex items-center space-x-4">
                     {/* Toggle between Fixed Deposits and House Loans */}
                     <div className="flex space-x-4">
-                        <button
-                            onClick={() => {
-                                setActiveLoanType("fd");
-                                setActiveSubMenu("issue_fd");
-                            }}
-                            className={`px-4 py-2 rounded-full transition-colors ${activeLoanType === "fd"
-                                ? "bg-blue-500 text-white"
-                                : "bg-gray-200 text-gray-700"
-                                }`}
-                        >
-                            Fixed Deposits
-                        </button>
+
                         <button
                             onClick={() => {
                                 setActiveLoanType("hl");
@@ -58,6 +47,19 @@ export default function EmployeeDashboard() {
                         >
                             House Loans
                         </button>
+                        <button
+                            onClick={() => {
+                                setActiveLoanType("fd");
+                                setActiveSubMenu("issue_fd");
+                            }}
+                            className={`px-4 py-2 rounded-full transition-colors ${activeLoanType === "fd"
+                                ? "bg-blue-500 text-white"
+                                : "bg-gray-200 text-gray-700"
+                                }`}
+                        >
+                            Fixed Deposits
+                        </button>
+
                     </div>
                     {/* Logo */}
                     <img
@@ -119,13 +121,13 @@ export default function EmployeeDashboard() {
                                     Issue House Loan
                                 </button>
                                 <button
-                                    onClick={() => setActiveSubMenu("adjust_rate")}
-                                    className={`px-3 py-2 rounded transition-colors ${activeSubMenu === "adjust_rate"
+                                    onClick={() => setActiveSubMenu("calculate_rate")}
+                                    className={`px-3 py-2 rounded transition-colors ${activeSubMenu === "calculate_rate"
                                         ? "bg-blue-400 text-white"
                                         : "bg-gray-100 text-gray-700"
                                         }`}
                                 >
-                                    Adjust Rate
+                                    Calculate Interest Rate
                                 </button>
                                 <button
                                     onClick={() => setActiveSubMenu("hl_history")}
