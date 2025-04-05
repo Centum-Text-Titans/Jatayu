@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import IssueFD from "../FixedDeposits/IssueFD";
 import FDHistory from "../FixedDeposits/FDHistory";
 import IssueHouseLoan from "../HouseLoans/IssueHouseLoan";
-import CalculateRate from "../FixedDeposits/CalculateRate";
+import CalculateRate from "../HouseLoans/CalculateRate";
 import HLHistory from "../HouseLoans/HLHistory";
 import ChatBot from "../Tools/Chatbot";
 
