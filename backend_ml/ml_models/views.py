@@ -12,6 +12,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from sklearn.preprocessing import StandardScaler, LabelEncoder, PowerTransformer
 
+from datetime import datetime
 
 
 
@@ -234,6 +235,26 @@ def get_loan_rates(request):
         return JsonResponse({"details": json_data}, status=200)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+@csrf_exempt
+def get_house_loan_json_last_modified(request):
+    """
+    Returns the last modified date for the house loan JSON file.
+    Endpoint: GET /get-house-loan-json-last-modified/
+    """
+    # Construct the JSON file path
+    json_filename = os.path.join(settings.BASE_DIR, "db", "jsons", "house_loan_rates.json")
+    
+    if not os.path.exists(json_filename):
+        return JsonResponse({"error": "JSON file does not exist."}, status=404)
+    
+    # Get the last modified timestamp and convert it to a datetime object
+    last_modified_timestamp = os.path.getmtime(json_filename)
+    last_modified_datetime = datetime.fromtimestamp(last_modified_timestamp)
+    formatted_date = last_modified_datetime.strftime("%Y-%m-%d %H:%M:%S")
+    
+    return JsonResponse({"last_modified": formatted_date})
 
 
 

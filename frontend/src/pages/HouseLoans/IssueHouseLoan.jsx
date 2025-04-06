@@ -9,20 +9,21 @@ export default function IssueHouseLoan() {
     const [receivedData, setReceivedData] = useState("");
 
     // Loan duration split into years and months
-    const [loanDurationYears, setLoanDurationYears] = useState(0);
-
+    const [loanDurationYears, setLoanDurationYears] = useState(1);
 
     // Data from endpoints
     const [customerDetails, setCustomerDetails] = useState([]);
+    // loanTypes now expected as an object with structure: { "Home Loan": {from_rate: X, to_rate: Y}, ... }
     const [loanTypes, setLoanTypes] = useState({});
+    const [lastModified, setLastModified] = useState(null);
 
     // Search states
     const [searchTerm, setSearchTerm] = useState("");
     const [customers, setCustomers] = useState([]);
     const [searchBy, setSearchBy] = useState("Name"); // Options: "Name" or "CID"
 
+    // Fetch customer details and loan types on mount
     useEffect(() => {
-        // Fetch customer details
         axios.get("http://localhost:8000/api/customer-details/")
             .then((response) => {
                 setCustomerDetails(response.data.details);
@@ -31,16 +32,59 @@ export default function IssueHouseLoan() {
                 console.error("Error fetching customer details:", error);
             });
 
-        // Fetch loan types
+        fetchLoanTypes();
+        fetchLastModified();
+    }, []);
+
+    // Function to fetch loan types
+    const fetchLoanTypes = () => {
         axios.get("http://localhost:8000/api/loan-json/")
             .then((response) => {
-                // Expecting a structure like: { "Home Loan": "5.5", "Car Loan": "7.2", ... }
+                // Expecting structure: { "Home Loan": {from_rate: X, to_rate: Y}, ... }
                 setLoanTypes(response.data);
             })
             .catch((error) => {
                 console.error("Error fetching loan types:", error);
             });
-    }, []);
+    };
+
+    // Function to fetch last modified timestamp
+    const fetchLastModified = () => {
+        axios.get("http://localhost:8000/api/loan-last-modified/")
+            .then((response) => {
+                if (response.data.last_modified) {
+                    setLastModified(response.data.last_modified);
+                }
+            })
+            .catch((error) => {
+                console.error("Error fetching last modified:", error);
+            });
+    };
+
+    // Refresh handler: calls save-json then updates lastModified and loanTypes
+    const handleRefreshRates = () => {
+        axios.get("http://localhost:8000/api/save-json/")
+            .then((response) => {
+                console.log(response.data.message);
+                // After saving, re-fetch the last modified time and loan types.
+                fetchLastModified();
+                fetchLoanTypes();
+            })
+            .catch((error) => {
+                console.error("Error refreshing loan rates:", error);
+            });
+    };
+
+    // Helper: compute time ago string from lastModified (expects lastModified in "YYYY-MM-DD HH:MM:SS")
+    const getTimeAgo = (lastModifiedStr) => {
+        if (!lastModifiedStr) return "";
+        const lastModifiedDate = new Date(lastModifiedStr);
+        const now = new Date();
+        const diff = Math.floor((now - lastModifiedDate) / 1000); // difference in seconds
+        if (diff < 60) return `${diff} sec ago`;
+        else if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+        else return `${Math.floor(diff / 3600)} hrs ago`;
+    };
 
     // Handle customer search filtering
     const handleSearch = (e) => {
@@ -73,16 +117,15 @@ export default function IssueHouseLoan() {
         setSelectedLoan(e.target.value);
     };
 
-
     const handleDynamicInterestCalculation = () => {
         if (!selectedCustomer || !selectedLoan || !loanAmount || !loanDurationYears) {
             console.error("Missing required fields for interest calculation.");
             return;
         }
-        console.log(loanTypes[selectedLoan]);
+        // For this calculation, we'll assume BaseRate is a number.
+        const baseRate = loanTypes[selectedLoan]?.from_rate || 0;
 
         const totalDuration = loanDurationYears;
-
         const requestData = {
             CreditScore: selectedCustomer.CreditScore,
             Tenure: selectedCustomer.Tenure,
@@ -101,7 +144,7 @@ export default function IssueHouseLoan() {
             TotalDebtToIncomeRatio: selectedCustomer.TotalDebtToIncomeRatio,
             LoanAmount: loanAmount,
             LoanDuration: totalDuration,
-            BaseRate: loanTypes[selectedLoan],
+            BaseRate: baseRate,
             HomeOwnershipStatus: selectedCustomer.HomeOwnershipStatus,
             BankruptcyHistory: selectedCustomer.BankruptcyHistory,
             NumberOfOpenCreditLines: selectedCustomer.NumberOfOpenCreditLines,
@@ -112,9 +155,8 @@ export default function IssueHouseLoan() {
         axios.post("http://localhost:8000/api/house-loan-predict/", requestData)
             .then((response) => {
                 console.log(response.data);
-                if (response.data && response.data) {
-                    // setInterestAmount(response.data);
-                    setReceivedData(response.data); // Store full response data for display
+                if (response.data) {
+                    setReceivedData(response.data);
                 } else {
                     console.error("Unexpected API response format:", response.data);
                 }
@@ -124,7 +166,52 @@ export default function IssueHouseLoan() {
             });
     };
 
+    // Helper function: Format number to Indian currency format (e.g., 1,00,000)
+    const formatNumberIndian = (num) => {
+        if (!num || isNaN(num)) return "";
+        return new Intl.NumberFormat('en-IN').format(num);
+    };
 
+    // Helper function: Convert number to words (supports up to crores)
+    const convertNumberToWords = (num) => {
+        const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+        const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+
+        if (num === 0) return "Zero";
+
+        let words = "";
+
+        if (Math.floor(num / 10000000) > 0) {
+            words += convertNumberToWords(Math.floor(num / 10000000)) + " Crore ";
+            num %= 10000000;
+        }
+        if (Math.floor(num / 100000) > 0) {
+            words += convertNumberToWords(Math.floor(num / 100000)) + " Lakh ";
+            num %= 100000;
+        }
+        if (Math.floor(num / 1000) > 0) {
+            words += convertNumberToWords(Math.floor(num / 1000)) + " Thousand ";
+            num %= 1000;
+        }
+        if (Math.floor(num / 100) > 0) {
+            words += convertNumberToWords(Math.floor(num / 100)) + " Hundred ";
+            num %= 100;
+        }
+        if (num > 0) {
+            if (words !== "") {
+                words += "and ";
+            }
+            if (num < 20) {
+                words += ones[num];
+            } else {
+                words += tens[Math.floor(num / 10)];
+                if (num % 10 > 0) {
+                    words += " " + ones[num % 10];
+                }
+            }
+        }
+        return words.trim();
+    };
 
     // Compute today's date and closing date dynamically based on the total loan duration.
     const totalMonths = loanDurationYears * 12;
@@ -135,10 +222,57 @@ export default function IssueHouseLoan() {
     const closingDateStr = closingDate.toLocaleDateString();
 
     return (
-        <div className="p-6 max-w-screen-lg mx-auto bg-white shadow rounded-lg">
+        <div className="p-6 mx-auto bg-white">
             <h2 className="text-3xl font-bold mb-6 text-center">Issue House Loan</h2>
 
             <div className="space-y-6">
+                {/* Refresh Rates Section */}
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                    <button
+                        onClick={handleRefreshRates}
+                        className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded mb-2 md:mb-0"
+                    >
+                        Fetch Live Data 🔄
+                    </button>
+                    {lastModified && (
+                        <p className="text-sm text-gray-600">
+                            Rates updated {getTimeAgo(lastModified)}
+                        </p>
+                    )}
+                </div>
+
+                {/* Interest Rates Table */}
+                <div className="overflow-x-auto">
+                    <table className="min-w-full border-collapse border border-gray-300">
+                        <thead className="bg-gray-200">
+                            <tr>
+                                <th className="border px-4 py-2 text-left">Loan Type</th>
+                                {/* <th className="border px-4 py-2 text-left">From Rate (%)</th> */}
+                                <th className="border px-4 py-2 text-left">To Rate (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {Object.entries(loanTypes).length > 0 ? (
+                                Object.entries(loanTypes).map(([loanName, rateObj]) => (
+                                    <tr key={loanName} className="hover:bg-gray-100">
+                                        <td className="border px-4 py-2">{loanName}</td>
+                                        {/* <td className="border px-4 py-2">
+                                            {rateObj.from_rate ? rateObj.from_rate : rateObj}
+                                        </td> */}
+                                        <td className="border px-4 py-2">
+                                            {rateObj.to_rate ? rateObj.to_rate : rateObj}
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td className="border px-4 py-2" colSpan="3">No interest rates available.</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
                 {/* Customer Search */}
                 <div className="flex flex-col sm:flex-row sm:space-x-4">
                     <div className="sm:w-1/4">
@@ -218,7 +352,7 @@ export default function IssueHouseLoan() {
                             className="w-full border p-2 rounded"
                         >
                             <option value="">Select Loan Type</option>
-                            {Object.entries(loanTypes).map(([loanName]) => (
+                            {Object.keys(loanTypes).map((loanName) => (
                                 <option key={loanName} value={loanName}>
                                     {loanName}
                                 </option>
@@ -229,7 +363,7 @@ export default function IssueHouseLoan() {
                         <label className="block text-sm font-medium mb-1">Current Rate (%)</label>
                         <input
                             type="text"
-                            value={selectedLoan ? loanTypes[selectedLoan] : ""}
+                            value={selectedLoan && loanTypes[selectedLoan] ? loanTypes[selectedLoan] : "99"}
                             disabled
                             className="w-full border p-2 rounded bg-gray-100 text-gray-700"
                         />
@@ -246,9 +380,19 @@ export default function IssueHouseLoan() {
                         placeholder="Enter Loan Amount"
                         className="w-full border p-2 rounded"
                     />
+                    {loanAmount && !isNaN(loanAmount) && (
+                        <div className="mt-2">
+                            <p className="text-lg text-blue-600">
+                                Loan Amount: ₹{formatNumberIndian(Number(loanAmount))}
+                            </p>
+                            <p className="text-md text-gray-700">
+                                In Words: {convertNumberToWords(Number(loanAmount))} rupees only
+                            </p>
+                        </div>
+                    )}
                 </div>
 
-                {/* Loan Duration (Years and Months) */}
+                {/* Loan Duration (Years) */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label className="block text-sm font-medium mb-1">Duration (Years)</label>
@@ -257,14 +401,13 @@ export default function IssueHouseLoan() {
                             onChange={(e) => setLoanDurationYears(Number(e.target.value))}
                             className="w-full border p-2 rounded"
                         >
-                            {Array.from({ length: 11 }, (_, i) => i).map((year) => (
+                            {Array.from({ length: 29 }, (_, i) => i + 1).map((year) => (
                                 <option key={year} value={year}>
                                     {year} {year === 1 ? "Year" : "Years"}
                                 </option>
                             ))}
                         </select>
                     </div>
-
                 </div>
 
                 {/* Loan Dates Display */}
@@ -287,10 +430,8 @@ export default function IssueHouseLoan() {
                     </button>
                 </div>
 
-
-
                 {receivedData && (
-                    <div className="mt-6 p-6 bg-white shadow-lg rounded-lg border w-full max-w-2xl mx-auto text-center">
+                    <div className="mt-6 p-6 bg-white shadow-lg rounded-lg border mx-auto text-center">
                         <h3 className="text-3xl font-bold text-gray-800 mb-4">📊 AI Analysis Report</h3>
                         <p className="text-lg text-gray-600 mb-6">Here's a detailed breakdown of the AI's risk assessment and loan evaluation:</p>
                         <div className="grid grid-cols-2 gap-6">

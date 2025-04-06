@@ -47,7 +47,7 @@ export default function Navbar() {
     
     return (
         <nav className="bg-blue-500 p-4 flex justify-between items-center">
-            <Link to="/" className="text-white text-2xl font-bold">Dynamic AI Interest Rate</Link>
+            <Link to="/" className="text-white text-2xl font-bold">Dynamic AI Interest Rate 🤖</Link>
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex space-x-6">
