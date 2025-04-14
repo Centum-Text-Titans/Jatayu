@@ -14,7 +14,7 @@ const CalculateRate = () => {
 
     useEffect(() => {
         const monthlyRate = interestRate / 12 / 100;
-        const adjustedRate = (interestRate + bps / 100) / 12 / 100;
+        const adjustedRate = (interestRate - bps / 100) / 12 / 100;
         const totalPayments = loanTenure * 12;
 
         const calcEMI = (rate) => {

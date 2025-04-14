@@ -8,7 +8,7 @@ const UserModel = require('../models/userModel');
 // Generate JWT Token
 const generateToken = (user) => {
     return jwt.sign(
-        { username: user.username, role: user.role },
+        { username: user.username, role: user.role,userid:user.id },
         process.env.REACT_APP_SECRET_KEY,
         { expiresIn: '3d' } // Token expires in 3 days
     );
@@ -79,7 +79,7 @@ const getProfile = (req, res) => {
 
     try {
         const decoded = jwt.verify(token, process.env.REACT_APP_SECRET_KEY);
-        res.json({ username: decoded.username, role: decoded.role });
+        res.json({ username: decoded.username, role: decoded.role ,userid : decoded.userid});
     } catch (err) {
         res.status(401).json({ message: 'Invalid token' });
     }

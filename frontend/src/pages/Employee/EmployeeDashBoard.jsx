@@ -1,27 +1,33 @@
 import React, { useState } from "react";
-import IssueFD from "../FixedDeposits/IssueFD";
-import FDHistory from "../FixedDeposits/FDHistory";
-import IssueHouseLoan from "../HouseLoans/IssueHouseLoan";
+import CalculateFD from "../FixedDeposits/CalculateFD";
+import SearchCustomerFd from "../FixedDeposits/SearchCustomerFd";
+import ViewFixedDepositSlabTable from "../FixedDeposits/ViewFixedDepositSlabTable";
 import CalculateRate from "../HouseLoans/CalculateRate";
-import HLHistory from "../HouseLoans/HLHistory";
+import ViewCustomers from "../HouseLoans/ViewCustomers";
 import ChatBot from "../Tools/Chatbot";
+import ViewHouseLoanSlabTable from "../HouseLoans/ViewHouseLoanSlabTable";
+import SearchCustomer from "../HouseLoans/SearchCustomer";
+import ViewCustomersFd from "../FixedDeposits/ViewCustomersFd";
 
 
 export default function EmployeeDashboard() {
     // State for the main toggle: "fd" = Fixed Deposits, "hl" = House Loans.
     const [activeLoanType, setActiveLoanType] = useState("hl");
     // State for the secondary navigation within each mode.
-    const [activeSubMenu, setActiveSubMenu] = useState("issue_hl");
+    const [activeSubMenu, setActiveSubMenu] = useState("search_or_add_hl");
 
     // Render main content based on the current sub-menu selection.
     const renderContent = () => {
         if (activeLoanType === "fd") {
-            if (activeSubMenu === "issue_fd") return <IssueFD />;
-            if (activeSubMenu === "fd_history") return <FDHistory />;
+            if (activeSubMenu === "calculate_fd") return <CalculateFD />;
+            if (activeSubMenu === "search_or_add_fd") return <SearchCustomerFd />;
+            if (activeSubMenu === "view_customers_fd") return <ViewCustomersFd />;
+            if (activeSubMenu === "slab_table_fd") return <ViewFixedDepositSlabTable />;
         } else if (activeLoanType === "hl") {
-            if (activeSubMenu === "issue_hl") return <IssueHouseLoan />;
             if (activeSubMenu === "calculate_rate") return <CalculateRate />;
-            if (activeSubMenu === "hl_history") return <HLHistory />;
+            if (activeSubMenu === "search_or_add_hl") return <SearchCustomer />;
+            if (activeSubMenu === "view_customers_hl") return <ViewCustomers />;
+            if (activeSubMenu === "slab_table_hl") return <ViewHouseLoanSlabTable />;
         }
         return <div>Select an option from the menu.</div>;
     };
@@ -38,7 +44,7 @@ export default function EmployeeDashboard() {
                         <button
                             onClick={() => {
                                 setActiveLoanType("hl");
-                                setActiveSubMenu("issue_hl");
+                                setActiveSubMenu("search_or_add_hl");
                             }}
                             className={`px-4 py-2 rounded-full transition-colors ${activeLoanType === "hl"
                                 ? "bg-blue-500 text-white"
@@ -50,7 +56,7 @@ export default function EmployeeDashboard() {
                         <button
                             onClick={() => {
                                 setActiveLoanType("fd");
-                                setActiveSubMenu("issue_fd");
+                                setActiveSubMenu("search_or_add_fd");
                             }}
                             className={`px-4 py-2 rounded-full transition-colors ${activeLoanType === "fd"
                                 ? "bg-blue-500 text-white"
@@ -90,35 +96,53 @@ export default function EmployeeDashboard() {
                         {activeLoanType === "fd" && (
                             <div className="flex space-x-4">
                                 <button
-                                    onClick={() => setActiveSubMenu("issue_fd")}
-                                    className={`px-3 py-2 rounded transition-colors ${activeSubMenu === "issue_fd"
+                                    onClick={() => setActiveSubMenu("search_or_add_fd")}
+                                    className={`px-3 py-2 rounded transition-colors ${activeSubMenu === "search_or_add_fd"
                                         ? "bg-blue-400 text-white"
                                         : "bg-gray-100 text-gray-700"
                                         }`}
                                 >
-                                    Issue FD
+                                    Search or Add Customer
                                 </button>
                                 <button
-                                    onClick={() => setActiveSubMenu("fd_history")}
-                                    className={`px-3 py-2 rounded transition-colors ${activeSubMenu === "fd_history"
+                                    onClick={() => setActiveSubMenu("calculate_fd")}
+                                    className={`px-3 py-2 rounded transition-colors ${activeSubMenu === "calculate_fd"
                                         ? "bg-blue-400 text-white"
                                         : "bg-gray-100 text-gray-700"
                                         }`}
                                 >
-                                    History
+                                    Calculate FD Amount
+                                </button>
+                                <button
+                                    onClick={() => setActiveSubMenu("slab_table_fd")}
+                                    className={`px-3 py-2 rounded transition-colors ${activeSubMenu === "slab_table_fd"
+                                        ? "bg-blue-400 text-white"
+                                        : "bg-gray-100 text-gray-700"
+                                        }`}
+                                >
+                                    View FD Slab Table
+                                </button>
+                                <button
+                                    onClick={() => setActiveSubMenu("view_customers_fd")}
+                                    className={`px-3 py-2 rounded transition-colors ${activeSubMenu === "view_customers_fd"
+                                        ? "bg-blue-400 text-white"
+                                        : "bg-gray-100 text-gray-700"
+                                        }`}
+                                >
+                                    View Customers
                                 </button>
                             </div>
                         )}
                         {activeLoanType === "hl" && (
                             <div className="flex space-x-4">
                                 <button
-                                    onClick={() => setActiveSubMenu("issue_hl")}
-                                    className={`px-3 py-2 rounded transition-colors ${activeSubMenu === "issue_hl"
+                                    onClick={() => setActiveSubMenu("search_or_add_hl")}
+                                    className={`px-3 py-2 rounded transition-colors ${activeSubMenu === "search_or_add_hl"
                                         ? "bg-blue-400 text-white"
                                         : "bg-gray-100 text-gray-700"
                                         }`}
                                 >
-                                    Issue House Loan
+                                    Search or Add Customer
                                 </button>
                                 <button
                                     onClick={() => setActiveSubMenu("calculate_rate")}
@@ -130,13 +154,22 @@ export default function EmployeeDashboard() {
                                     Calculate Interest Rate
                                 </button>
                                 <button
-                                    onClick={() => setActiveSubMenu("hl_history")}
-                                    className={`px-3 py-2 rounded transition-colors ${activeSubMenu === "hl_history"
+                                    onClick={() => setActiveSubMenu("slab_table_hl")}
+                                    className={`px-3 py-2 rounded transition-colors ${activeSubMenu === "slab_table_hl"
                                         ? "bg-blue-400 text-white"
                                         : "bg-gray-100 text-gray-700"
                                         }`}
                                 >
-                                    History
+                                    View Slab Table
+                                </button>
+                                <button
+                                    onClick={() => setActiveSubMenu("view_customers_hl")}
+                                    className={`px-3 py-2 rounded transition-colors ${activeSubMenu === "view_customers_hl"
+                                        ? "bg-blue-400 text-white"
+                                        : "bg-gray-100 text-gray-700"
+                                        }`}
+                                >
+                                    View Customers
                                 </button>
                             </div>
                         )}

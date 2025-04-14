@@ -1,0 +1,86 @@
+{
+    "below 3 cr": [
+        {
+            "Tenure": "7 days - 45 days",
+            "Regular customers": "3.50%",
+            "Senior citizens": "4.00%"
+        },
+        {
+            "Tenure": "46 days - 179 days",
+            "Regular customers": "5.50%",
+            "Senior citizens": "6.00%"
+        },
+        {
+            "Tenure": "180 days - 210 days",
+            "Regular customers": "6.25%",
+            "Senior citizens": "6.75%"
+        },
+        {
+            "Tenure": "211 days - 364 days",
+            "Regular customers": "6.50%",
+            "Senior citizens": "7.00%"
+        },
+        {
+            "Tenure": "1 year - 1 year 364 days",
+            "Regular customers": "6.80%",
+            "Senior citizens": "7.30%"
+        },
+        {
+            "Tenure": "2 years - 2 years 364 days",
+            "Regular customers": "7.00%",
+            "Senior citizens": "7.50%"
+        },
+        {
+            "Tenure": "3 years - 4 years 364 days",
+            "Regular customers": "6.75%",
+            "Senior citizens": "7.25%"
+        },
+        {
+            "Tenure": "5 years - 10 years",
+            "Regular customers": "6.50%",
+            "Senior citizens": "7.50%"
+        }
+    ],
+    "above 3 cr": [
+        {
+            "Tenure": "7 days - 45 days",
+            "Regular customers": "5.25%",
+            "Senior citizens": "5.75%"
+        },
+        {
+            "Tenure": "46 days - 179 days",
+            "Regular customers": "6.25%",
+            "Senior citizens": "6.75%"
+        },
+        {
+            "Tenure": "180 days - 210 days",
+            "Regular customers": "6.60%",
+            "Senior citizens": "7.10%"
+        },
+        {
+            "Tenure": "211 days - less than 1 year",
+            "Regular customers": "6.75%",
+            "Senior citizens": "7.25%"
+        },
+        {
+            "Tenure": "1 year - less than 2 years",
+            "Regular customers": "7.00%",
+            "Senior citizens": "7.50%"
+        },
+        {
+            "Tenure": "2 years - less than 3 years",
+            "Regular customers": "7.00%",
+            "Senior citizens": "7.50%"
+        },
+        {
+            "Tenure": "3 years - less than 5 years",
+            "Regular customers": "6.50%",
+            "Senior citizens": "7.00%"
+        },
+        {
+            "Tenure": "5 years and up - 10 years",
+            "Regular customers": "6.25%",
+            "Senior citizens": "6.75%"
+        }
+    ]
+}
