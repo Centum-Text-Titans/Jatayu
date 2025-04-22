@@ -363,14 +363,14 @@ const IssueFixedDeposit = () => {
                         <FixedDepositInterestRate receivedData={receivedData} />
                     </div>
 
-                    <div className="text-center mt-6">
+                    {/* <div className="text-center mt-6">
                         <button
                             onClick={() => setShowEmiAnalysis(true)}
                             className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded"
                         >
                             Calculate EMI
                         </button>
-                    </div>
+                    </div> */}
 
                     {showEmiAnalysis && (
                         <div className="mt-6">

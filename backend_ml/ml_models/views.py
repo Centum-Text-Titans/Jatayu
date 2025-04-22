@@ -20,6 +20,7 @@ from .utils.house_loan import classification_model_prediction , regression_model
 from .utils.fixed_deposit import calculate_fd_bps
 
 
+
 LOCAL_SCHEMA_COLUMNS = ["CustomerID", "CustomerName", "Tenure", "Age", "Gender", "MaritalStatus", "AnnualIncome", "MonthlyIncome", "CreditScore", "EmploymentStatus", "EducationLevel", "Experience", "LoanAmount", "LoanDuration", "NumberOfDependents", "HomeOwnershipStatus", "MonthlyDebtPayments", "CreditCardUtilizationRate", "NumberOfOpenCreditLines", "NumberOfCreditInquiries", "DebtToIncomeRatio", "BankruptcyHistory", "LoanPurpose", "PreviousLoanDefaults", "PaymentHistory", "LengthOfCreditHistory", "SavingsAccountBalance", "CheckingAccountBalance", "TotalAssets", "TotalLiabilities", "UtilityBillsPaymentHistory", "JobTenure", "NetWorth", "BaseInterestRate", "InterestRate", "MonthlyLoanPayment", "TotalDebtToIncomeRatio", "Geography", "NumOfProducts", "HasCrCard", "IsActiveMember"]
 
 
@@ -592,7 +593,7 @@ def get_fixed_deposit_interest_rate(request):
 
             # Compute BPS and the final interest rate.
             norm_crs = crs_score *100
-            bps, bonus_bps, final_rate = calculate_fd_bps(norm_crs,loan_amount,loan_duration ,base_rate)
+            bps, bonus_bps, final_rate = calculate_fd_bps(norm_crs,loan_amount,loan_duration ,base_rate )
             print("bps",bps)
             print("bonus_bps",bonus_bps)
             print("final_rate",final_rate)
