@@ -1,14 +1,30 @@
 # importing modules
 import os
 import json
+import pathlib
 import requests
+import matplotlib
+import tempfile
 import pandas as pd
-from bs4 import BeautifulSoup
+from fpdf import FPDF
+matplotlib.use("Agg")  # Use non-GUI backend
 from datetime import datetime
+from bs4 import BeautifulSoup
+from dotenv import load_dotenv
+import matplotlib.pyplot as plt
 from django.conf import settings
+import google.generativeai as genai
+from pandasai import SmartDataframe
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from langchain_google_genai import ChatGoogleGenerativeAI
 
+
+
+
+load_dotenv()
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.3)
 
 
 # Importing key Functions 
@@ -16,9 +32,11 @@ from .utils.fiass import build_faiss_index_from_pdf
 from .utils.house_loan_rag import rag_predict_scores,rag_crs_predict_scores
 from .utils.web_scrape import save_sbi_fd_rates ,save_house_loan_to_json
 from .utils.extract_data import map_columns_with_llm , extract_text_from_pdf ,extract_customer_data_from_pdf
-from .utils.house_loan import classification_model_prediction , regression_model_prediction ,calculate_house_loan_bps
+from .utils.house_loan import classification_model_prediction , regression_model_prediction ,calculate_house_loan_bps,preprocess_input_for_regression
 from .utils.fixed_deposit import calculate_fd_bps
-
+from .utils.issuehouseloan import get_factor_bps
+from .utils.house_loan_interest import process_customer_fixed_deposit,process_customer_house_loan
+from .utils.market_trends import get_market_trends
 
 
 LOCAL_SCHEMA_COLUMNS = ["CustomerID", "CustomerName", "Tenure", "Age", "Gender", "MaritalStatus", "AnnualIncome", "MonthlyIncome", "CreditScore", "EmploymentStatus", "EducationLevel", "Experience", "LoanAmount", "LoanDuration", "NumberOfDependents", "HomeOwnershipStatus", "MonthlyDebtPayments", "CreditCardUtilizationRate", "NumberOfOpenCreditLines", "NumberOfCreditInquiries", "DebtToIncomeRatio", "BankruptcyHistory", "LoanPurpose", "PreviousLoanDefaults", "PaymentHistory", "LengthOfCreditHistory", "SavingsAccountBalance", "CheckingAccountBalance", "TotalAssets", "TotalLiabilities", "UtilityBillsPaymentHistory", "JobTenure", "NetWorth", "BaseInterestRate", "InterestRate", "MonthlyLoanPayment", "TotalDebtToIncomeRatio", "Geography", "NumOfProducts", "HasCrCard", "IsActiveMember"]
@@ -167,6 +185,53 @@ def get_house_loan_interest_rate(request):
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
     return JsonResponse({"error": "POST method required."}, status=405)
+
+
+@csrf_exempt
+def get_house_loan_interest_rater(request):
+    if request.method == "POST":
+        try:
+            # Parse data
+            data = json.loads(request.body) if request.content_type == "application/json" else request.POST
+            customer_id = str(data.get('customer_id', '')).strip()
+            loan_amount = float(data.get('LoanAmount', 0) or 0)
+            loan_duration = float(data.get('LoanDuration', 1) or 1)
+            base_rate = float(data.get('BaseRate', 0) or 0)
+
+            if not customer_id or loan_amount <= 0 or loan_duration <= 0 or base_rate <= 0:
+                return JsonResponse({"error": "Missing or invalid customer_id, LoanAmount, LoanDuration, or BaseRate."}, status=400)
+
+            # Load customer CSV
+            csv_path = os.path.join(settings.BASE_DIR, 'db', 'houseloan', 'sample_data.csv')
+            
+            # updated bps calculation 
+            results ,bps= process_customer_house_loan(csv_path,customer_id,base_rate)
+            
+
+            # bps based on market trends
+            market_bps = get_market_trends()
+            
+            final_rate = base_rate - (bps/100) - (market_bps/100)
+            
+
+            return JsonResponse({
+                "base_rate": base_rate,
+                "bps": bps,
+                "market_bps": market_bps,
+                "final_rate": final_rate,
+                "customer_id": customer_id,
+                "loan_amount": loan_amount,
+                "loan_duration": loan_duration,
+                "results": results
+            })
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "POST method required."}, status=405)
+
+
+
 
 @csrf_exempt
 def save_house_loan_json(request):
@@ -614,3 +679,152 @@ def get_fixed_deposit_interest_rate(request):
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
     return JsonResponse({"error": "POST method required."}, status=405)
+
+
+
+@csrf_exempt
+def get_fixed_deposit_interest_rater(request):
+    if request.method == "POST":
+        try:
+            # Parse data
+            data = json.loads(request.body) if request.content_type == "application/json" else request.POST
+            customer_id = str(data.get('customer_id', '')).strip()
+            loan_amount = float(data.get('LoanAmount', 0) or 0)
+            loan_duration = float(data.get('LoanDuration', 1) or 1)
+            base_rate = float(data.get('BaseRate', 0) or 0)
+
+            if not customer_id or loan_amount <= 0 or loan_duration <= 0 or base_rate <= 0:
+                return JsonResponse({"error": "Missing or invalid customer_id, LoanAmount, LoanDuration, or BaseRate."}, status=400)
+
+            # Load customer CSV
+            csv_path = os.path.join(settings.BASE_DIR, 'db', 'houseloan', 'sample_data.csv')
+            
+            # updated bps calculation 
+            results ,bps= process_customer_fixed_deposit(csv_path,customer_id,base_rate)
+            
+            # bps based on market trends
+            market_bps = get_market_trends()
+            
+            final_rate = base_rate + (bps/100) +(market_bps/100)
+            
+
+            return JsonResponse({
+                "base_rate": base_rate,
+                "bps": bps,
+                "market_bps": market_bps,
+                "final_rate": final_rate,
+                "customer_id": customer_id,
+                "loan_amount": loan_amount,
+                "loan_duration": loan_duration,
+                "results": results
+            })
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "POST method required."}, status=405)
+
+
+
+
+
+# -----------------------------Chat bot agent --------------------
+
+
+
+
+
+
+
+df = pd.read_csv("C:\\Users\\Vishnu\\Documents\\Gitprojects\\Jatayu\\backend_ml\\db\\houseloan\\sample_data.csv")
+current_df = SmartDataframe(
+                    df,
+                    config={
+                        "llm": llm,
+                        "open_charts": False,
+                        "privacy_level": "none",
+                        "enforce_privacy": False,
+                        "custom_whitelisted_dependencies": ["io", "tempfile", "pandas"],
+                        "save_charts": True
+                    }
+                )
+
+ALLOWED_EXTENSIONS = {'csv', 'xlsx'}
+
+
+
+chat_history = []  # [ {"role": "Q"/"A", "content": "...", "is_image": bool}, ...]
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+
+@csrf_exempt
+def process_question(request):
+    global current_df, chat_history
+    if request.method == "POST":
+        print("madadaa")
+        try:
+            data = json.loads(request.body)
+        except Exception:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+        BASE_DIR = settings.BASE_DIR
+        question = data.get('question', '').strip()
+        if not question:
+            return JsonResponse({"error": "No question provided"}, status=400)
+
+        # --- NORMAL QUESTION FLOW ---
+        if current_df is None:
+            return JsonResponse({"error": "No file uploaded for analysis"}, status=400)
+
+        # Store user questionq
+        chat_history.append({
+            "role": "Q",
+            "content": question,
+            "is_image": False
+        })
+
+        prompt_template = """
+        You are a CSV analysis assistant. Your task is to process and analyze the provided CSV data accurately and effectively while understanding and addressing user queries flexibly.
+
+        Query: "{query}"
+
+        Instructions:
+            - Answer queries based strictly on the provided CSV data, ensuring responses are precise, clear, and relevant.
+            - For ambiguous or unclear queries, politely request clarification before proceeding.
+            - For shorthand or incomplete queries, interpret the user's intent and provide the most likely answer based on the data.
+            - If a query involves calculations, comparisons, or visualizations, provide results clearly or suggest suitable visual outputs.
+            - Support user interaction by summarizing, filtering, or sorting data as needed, and explain your steps when necessary.
+            - When appropriate, format responses (e.g., as tables or bullet points) to enhance readability and usability.
+            - Even if the answer is a number return it as a string
+        """
+        formatted_prompt = prompt_template.format(query=question)
+
+        try:
+            response = current_df.chat(formatted_prompt)
+
+            # Check if it's an image path starting with "exports/"
+            if (isinstance(response, str)
+                and response.startswith("exports/")
+                and pathlib.Path(response).suffix.lower() in [".png", ".jpg", ".jpeg"]):
+                chat_history.append({
+                    "role": "A",
+                    "content": response,
+                    "is_image": True
+                })
+                return JsonResponse({"response": response}, status=200)
+            else:
+                chat_history.append({
+                    "role": "A",
+                    "content": str(response),
+                    "is_image": False
+                })
+                return JsonResponse({"response": str(response)}, status=200)
+
+        except Exception as e:
+            return JsonResponse({"error": f"Failed to process question: {str(e)}"}, status=500)
+
+    else:
+        return JsonResponse({"error": "Invalid request method"}, status=405)

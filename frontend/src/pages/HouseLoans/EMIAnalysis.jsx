@@ -1,29 +1,80 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { useParams } from "react-router-dom";
 
-const EMIAnalysis = ({ response_data }) => {
-    // Destructure constant and initial values from response_data.
+const FLASK_API_URL = import.meta.env.VITE_FLASK_URL; // Should end with `/api`
+const decryptCustomerId = (token) => atob(token);
+const EMIAnalysis = () => {
+    const [emiData, setEmiData] = useState(null);
+    const [loanAmount, setLoanAmount] = useState(0);
+    const [loanDuration, setLoanDuration] = useState(0);
+    const [BPS, setBPS] = useState(0);
+    const [BPS_Deduction, setBPS_Deduction] = useState(0);
+    const [customerData, setCustomerData] = useState(null);
+    
+    const { token } = useParams();
+    const customerId = decryptCustomerId(token);
+    // Fetch EMI data from localStorage on component mount
+    useEffect(() => {
+        const storedData = localStorage.getItem("emiData");
+        const storedData1 = localStorage.getItem("emiBpsData");
+        if (storedData) {
+            const data = JSON.parse(storedData);
+            setEmiData(data);
+            setLoanAmount(data.loan_amount); // Set the initial loan amount
+            setLoanDuration(data.loan_duration); // Set the initial loan duration
+        } else {
+            console.warn("No EMI data found in localStorage.");
+        }
+        if (storedData1) {
+            const data = JSON.parse(storedData1);
+            var bp = data.bps+data.market_bps
+            setBPS(bp); // Set the initial loan amount
+            setBPS_Deduction(bp/100); // Set the initial loan duration
+        } else {
+            console.warn("No EMI data found in localStorage.");
+        }
+
+
+        axios
+            .get(`${FLASK_API_URL}/customer-details/${customerId}`)
+            .then((response) => setCustomerData(response.data))
+            .catch((error) => console.error("Error fetching customer details:", error));
+    }, []);
+
+    // Handle cases where emiData is still not available (loading state)
+    if (!emiData) {
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <div className="text-center space-y-4">
+                    <h2 className="text-2xl font-semibold text-gray-700">No EMI Data Available</h2>
+                    <p className="text-gray-500">
+                        Please return to the previous page and try calculating EMI again.
+                    </p>
+                </div>
+            </div>
+        );
+    }
+    const formatNumberIndian = (num) => {
+        if (!num || isNaN(num)) return "";
+        return new Intl.NumberFormat("en-IN").format(num);
+    };
+    // Destructure after confirming emiData is available
     const {
         CRS,
         RAS,
         base_rate,
-        BPS,
-        BPS_Deduction,
-        loan_amount: initialLoanAmount,
-        loan_duration: initialLoanDuration,
-        FinalRate, // Provided final rate from your backend logic.
-    } = response_data;
+        // BPS,
+        // BPS_Deduction,
+        FinalRate,
+    } = emiData;
 
-    // BPS is constant so we do not let it change.
     const computedFinalRate = base_rate - (BPS / 100);
 
-    // Use state for the adjustable loan amount and duration
-    const [loanAmount, setLoanAmount] = useState(initialLoanAmount);
-    const [loanDuration, setLoanDuration] = useState(initialLoanDuration);
-
-    // Total number of monthly payments based on current duration.
+    // Total number of monthly payments based on current duration
     const totalPayments = loanDuration * 12;
 
-    // Generic function for calculating EMI.
+    // Generic function for calculating EMI
     const calculateEMI = (principal, annualRate, tenureYears) => {
         const months = tenureYears * 12;
         const monthlyRate = annualRate / 12 / 100;
@@ -35,7 +86,7 @@ const EMIAnalysis = ({ response_data }) => {
         return emi;
     };
 
-    // Recalculate EMI values whenever loanAmount or loanDuration updates.
+    // Recalculate EMI values whenever loanAmount or loanDuration updates
     const emiWithoutBPS = calculateEMI(loanAmount, base_rate, loanDuration);
     const emiWithBPS = calculateEMI(loanAmount, computedFinalRate, loanDuration);
 
@@ -45,11 +96,11 @@ const EMIAnalysis = ({ response_data }) => {
     const interestWithoutBPS = totalWithoutBPS - loanAmount;
     const interestWithBPS = totalWithBPS - loanAmount;
 
-    // Calculate percentage breakdowns for the pie charts.
+    // Calculate percentage breakdowns for the pie charts
     const interestPercentageWithoutBPS = (interestWithoutBPS / totalWithoutBPS) * 100;
     const interestPercentageWithBPS = (interestWithBPS / totalWithBPS) * 100;
 
-    // Handlers for the sliders.
+    // Handlers for the sliders
     const handleLoanAmountChange = (e) => {
         setLoanAmount(Number(e.target.value));
     };
@@ -58,50 +109,79 @@ const EMIAnalysis = ({ response_data }) => {
         setLoanDuration(Number(e.target.value));
     };
 
+
+
     return (
-        <div className=" mx-auto p-6 bg-gray-50 rounded-lg shadow-md space-y-8">
+        <div className="mx-auto p-6 bg-gray-50 rounded-lg shadow-md space-y-8">
             <h2 className="text-3xl font-bold text-center text-gray-800">
                 EMI Analysis & BPS Discount Impact
             </h2>
 
-            {/* Adjustable Sliders Section */}
-            <div className="bg-white p-4 rounded-lg shadow border space-y-6">
-                <div>
-                    <label className="block text-lg font-semibold text-gray-700 mb-1">
-                        Adjust Loan Amount (₹)
-                    </label>
-                    <input
-                        type="range"
-                        min="100000"
-                        max="10000000"
-                        step="10000"
-                        value={loanAmount}
-                        onChange={handleLoanAmountChange}
-                        className="w-full h-2 bg-gray-200 rounded-lg cursor-pointer"
-                    />
-                    <p className="text-blue-600 font-medium mt-1">
-                        ₹{loanAmount.toLocaleString()}
-                    </p>
-                </div>
+            {customerData ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="bg-white p-8 rounded-lg shadow-xl border border-gray-200">
+                        <div className="mb-4 border-b pb-2">
+                            <h3 className="text-2xl font-semibold text-gray-800">
+                                {customerData.CustomerName}
+                            </h3>
+                            <p className="text-sm text-gray-500">Customer ID: {customerData.CustomerID}</p>
+                        </div>
+                        <div className="space-y-2">
+                            <p className="text-gray-700"><span className="font-semibold">Age:</span> {customerData.Age}</p>
+                            <p className="text-gray-700"><span className="font-semibold">Credit Score:</span> {customerData.CreditScore}</p>
+                            <p className="text-gray-700"><span className="font-semibold">Marital Status:</span> {customerData.MaritalStatus}</p>
+                            <p className="text-gray-700"><span className="font-semibold">Education:</span> {customerData.EducationLevel}</p>
+                            <p className="text-gray-700"><span className="font-semibold">Annual Income:</span> ₹{formatNumberIndian(customerData.AnnualIncome)}</p>
+                            <p className="text-gray-700"><span className="font-semibold">Home Ownership:</span> {customerData.HomeOwnershipStatus}</p>
+                        </div>
+                    </div>
 
-                <div>
-                    <label className="block text-lg font-semibold text-gray-700 mb-1">
-                        Adjust Loan Duration (Years)
-                    </label>
-                    <input
-                        type="range"
-                        min="1"
-                        max="30"
-                        step="1"
-                        value={loanDuration}
-                        onChange={handleLoanDurationChange}
-                        className="w-full h-2 bg-gray-200 rounded-lg cursor-pointer"
-                    />
-                    <p className="text-blue-600 font-medium mt-1">
-                        {loanDuration} {loanDuration === 1 ? "Year" : "Years"}
-                    </p>
+                    <div className="bg-white p-8 rounded-lg shadow-xl border border-gray-200 space-y-6">
+                        {/* Adjustable Sliders Section */}
+                        <div className="bg-white p-4 rounded-lg shadow border space-y-6">
+                            <div>
+                                <label className="block text-lg font-semibold text-gray-700 mb-1">
+                                    Adjust Loan Amount (₹)
+                                </label>
+                                <input
+                                    type="range"
+                                    min="100000"
+                                    max="10000000"
+                                    step="10000"
+                                    value={loanAmount}
+                                    onChange={handleLoanAmountChange}
+                                    className="w-full h-2 bg-gray-200 rounded-lg cursor-pointer"
+                                />
+                                <p className="text-blue-600 font-medium mt-1">
+                                    ₹{loanAmount.toLocaleString()}
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="block text-lg font-semibold text-gray-700 mb-1">
+                                    Adjust Loan Duration (Years)
+                                </label>
+                                <input
+                                    type="range"
+                                    min="1"
+                                    max="30"
+                                    step="1"
+                                    value={loanDuration}
+                                    onChange={handleLoanDurationChange}
+                                    className="w-full h-2 bg-gray-200 rounded-lg cursor-pointer"
+                                />
+                                <p className="text-blue-600 font-medium mt-1">
+                                    {loanDuration} {loanDuration === 1 ? "Year" : "Years"}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            ) : (
+                <div className="text-center text-gray-600 mt-6">Loading customer data...</div>
+            )}
+
+
 
             {/* Rate and Loan Details Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -110,7 +190,7 @@ const EMIAnalysis = ({ response_data }) => {
                     <Detail label="Loan Amount:" value={`₹${loanAmount.toLocaleString()}`} />
                     <Detail label="Loan Duration:" value={`${loanDuration} ${loanDuration > 1 ? 'years' : 'year'}`} />
                     <Detail label="Base Rate:" value={`${base_rate}%`} />
-                    <Detail label="BPS Discount:" value={`${BPS} bps (Disabled) – (${BPS_Deduction}%)`} />
+                    <Detail label="BPS Discount:" value={`${BPS} bps  – (${BPS_Deduction}%)`} />
                     <Detail label="Computed Final Rate:" value={`${computedFinalRate.toFixed(2)}%`} />
                     <Detail label="Provided Final Rate:" value={`${FinalRate}%`} />
                     <Detail label="Credit Scores:" value={`CRS: ${CRS}, RAS: ${RAS}`} />

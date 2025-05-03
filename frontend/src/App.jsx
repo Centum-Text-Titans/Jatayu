@@ -10,6 +10,10 @@ import IssueHouseLoan from "./pages/HouseLoans/IssueHouseLoan";
 import axios from "axios";
 import Login from "./pages/Login";
 import IssueFixedDeposit from "./pages/FixedDeposits/IssueFixedDeposit";
+import AllParameterRatings from "./pages/Details/AllParameterRatings";
+import EMIAnalysis from "./pages/HouseLoans/EMIAnalysis";
+import BpsTable from "./pages/HouseLoans/BpsTable";
+import BpsFdTable from "./pages/FixedDeposits/BpsFdTable";
 
 export default function App() {
     const [authLoading, setAuthLoading] = useState(true);
@@ -68,6 +72,10 @@ const AdminRoutes = () => (
 const EmployeeRoutes = () => (
     <Routes>
         <Route path="/" element={<EmployeeDashboard />} />
+        <Route path="/hari" element={<AllParameterRatings />} />
+        <Route path="/issue-loan/emi-analysis/:token" element={<EMIAnalysis />} />
+        <Route path="/issue-loan/bps-breakdown/:token" element={<BpsTable />} />
+        <Route path="/issue-fd/bps-breakdown/:token" element={<BpsFdTable />} />
         <Route path="/issue-loan/:token" element={<IssueHouseLoan />} />
         <Route path="/issue-fd/:token" element={<IssueFixedDeposit />} />
     </Routes>

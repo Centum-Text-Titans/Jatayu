@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams } from "react-router-dom";
 import FixedDepositInterestRate from "./FixedDepositInterestRate";
-import EMIAnalysis from "./EMIAnalysis";
+// import EMIAnalysis from "./EMIAnalysis";
+import FdInterestRateDisplay from "./FdInterestRateDisplay"
 
 const FLASK_API_URL = import.meta.env.VITE_FLASK_URL;
 const decryptCustomerId = (token) => atob(token);
@@ -24,11 +25,14 @@ const IssueFixedDeposit = () => {
     const [selectedSlab, setSelectedSlab] = useState(null);
 
     const [receivedData, setReceivedData] = useState(null);
-    const [showEmiAnalysis, setShowEmiAnalysis] = useState(false);
+    const [receivedBpsData, setReceivedBpsData] = useState(null);
+
+    const [bpsLoadingStep, setBpsLoadingStep] = useState(null);
+    const [bpsError, setBpsError] = useState(false);
 
 
 
-   
+
 
     const convertNumberToWords = (num) => {
         const ones = [
@@ -168,31 +172,73 @@ const IssueFixedDeposit = () => {
             console.error("Missing or invalid inputs for FD calculation.");
             return;
         }
-        const totalDurationYears = parseFloat(selectedYears) + parseFloat(selectedMonths) / 12 + parseFloat(selectedDays) / 365;
-
-
+    
+        const totalDurationYears =
+            parseFloat(selectedYears) +
+            parseFloat(selectedMonths) / 12 +
+            parseFloat(selectedDays) / 365;
+    
         // Prepare payload for the POST request.
         const payload = {
             customer_id: customerId,
             LoanAmount: depositAmount,
-            LoanDuration: totalDurationYears, // Pass duration as float (in years)
+            LoanDuration: totalDurationYears, // Duration in years
             BaseRate: rate
         };
-
+    
         try {
+            // Clear previous data
+            localStorage.removeItem("fdData");
+            localStorage.removeItem("fdBpsData");
+    
+            // First request: base FD prediction
             const response = await axios.post(
                 `${FLASK_API_URL}/fixed_deposit_predict/`,
                 payload,
                 { headers: { "Content-Type": "application/json" } }
             );
+    
             if (response.data) {
                 setReceivedData(response.data);
+                localStorage.setItem("fdData", JSON.stringify(response.data));
             }
+    
+            setBpsLoadingStep("Processing customer data...");
+            setBpsError(false);
+    
+            // Second request: get BPS-adjusted interest rate
+            const response1 = await axios.post(
+                `${FLASK_API_URL}/get_fixed_deposit_interest_rater/`,
+                payload,
+                { headers: { "Content-Type": "application/json" } }
+            );
+    
+            setBpsLoadingStep("Fetching market trends...");
+            setTimeout(() => {
+                setBpsLoadingStep("Calculating final BPS...");
+                setTimeout(() => {
+                    setReceivedBpsData(response1.data);
+                    localStorage.setItem("fdBpsData", JSON.stringify(response1.data));
+                    setBpsLoadingStep(null); // clear loading state
+                }, 1000);
+            }, 1000);
+    
+            console.log(response1.data);
+    
         } catch (error) {
             console.error("Error calculating FD interest using backend:", error);
+            setBpsLoadingStep(null);
+            setBpsError(true);
         }
     };
 
+
+    
+    const handleBpsTableClick = () => {
+        const newUrl = `/employee/issue-fd/bps-breakdown/${token}`;
+        window.open(newUrl, "_blank");
+    };
+    
     // Formatting function for numbers in Indian style.
     const formatNumberIndian = (num) => new Intl.NumberFormat("en-IN").format(num);
 
@@ -241,14 +287,14 @@ const IssueFixedDeposit = () => {
                                 }}
                             />
                             <div>
-                            {depositAmount && !isNaN(depositAmount) && (
-                                <div className="mt-2">
-                                    <p className="text-lg text-blue-600 font-semibold">₹{formatNumberIndian(Number(depositAmount))}</p>
-                                    <p className="text-md text-gray-700">
-                                        In Words: {convertNumberToWords(Number(depositAmount))} rupees only
-                                    </p>
-                                </div>
-                            )}
+                                {depositAmount && !isNaN(depositAmount) && (
+                                    <div className="mt-2">
+                                        <p className="text-lg text-blue-600 font-semibold">₹{formatNumberIndian(Number(depositAmount))}</p>
+                                        <p className="text-md text-gray-700">
+                                            In Words: {convertNumberToWords(Number(depositAmount))} rupees only
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -357,26 +403,47 @@ const IssueFixedDeposit = () => {
                 <p className="text-center mt-6 text-gray-600">Loading customer details...</p>
             )}
 
+
+            {bpsLoadingStep && (
+                <div className="mt-10 text-center text-blue-600 font-medium">
+                    {bpsLoadingStep}
+                </div>
+            )}
+
+            {bpsError && (
+                <div className="mt-10 text-center text-red-600 font-semibold">
+                    Failed to calculate BPS. Please try again later.
+                </div>
+            )}
+
             {receivedData && (
                 <>
-                    <div className="mt-10">
-                        <FixedDepositInterestRate receivedData={receivedData} />
-                    </div>
+                    <FixedDepositInterestRate receivedData={receivedData} />
+                </>
+            )}
 
+            {receivedBpsData && (
+                <>
+                    <div className="mt-10">
+                        <FdInterestRateDisplay receivedBpsData={receivedBpsData} />
+                    </div>
                     {/* <div className="text-center mt-6">
                         <button
-                            onClick={() => setShowEmiAnalysis(true)}
+                            onClick={handleInterestClick}
                             className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded"
                         >
-                            Calculate EMI
+                            Calculate Interest rate FD
                         </button>
                     </div> */}
+                    <div className="text-center mt-6">
+                        <button
+                            onClick={handleBpsTableClick}
+                            className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2 rounded"
+                        >
+                            View Bps BreakDown
+                        </button>
+                    </div>
 
-                    {showEmiAnalysis && (
-                        <div className="mt-6">
-                            <EMIAnalysis response_data={receivedData} />
-                        </div>
-                    )}
                 </>
             )}
         </div>

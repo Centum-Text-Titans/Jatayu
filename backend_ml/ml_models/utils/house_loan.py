@@ -45,14 +45,111 @@ def classification_model_prediction(input_data):
     return CRS
 
 
+# def preprocess_input_for_regression(data):
+#     df = pd.DataFrame([data])
+
+#     # Normalize column names: remove spaces and strip
+#     df.columns = df.columns.str.strip().str.replace(" ", "")
+
+#     # Yes/No fields
+#     yes_no_columns = ['BankruptcyHistory', 'PreviousLoanDefaults']
+#     yes_no_mapping = {"Yes": 1, "No": 0}
+
+#     for col in yes_no_columns:
+#         if col in df.columns:
+#             df[col] = df[col].replace(yes_no_mapping)
+#             try:
+#                 df[col] = df[col].astype('int')
+#             except Exception as e:
+#                 print(f"Error converting {col} to int: {e}")
+#                 df[col] = df[col].fillna(0)
+
+#     # Employment Status
+#     employment_mapping = {
+#         'Employed': 0,
+#         'Self-employed': 1,
+#         'Unemployed': 2
+#     }
+#     for col in ['EmploymentStatus', 'Employmentstatus']:  # in case of variation
+#         if col in df.columns:
+#             df[col] = df[col].map(employment_mapping).fillna(-1)
+
+#     # Education Level
+#     if 'EducationLevel' in df.columns:
+#         df['EducationLevel'] = df['EducationLevel'].replace({
+#             "High School": 0,
+#             "Associate": 1,
+#             "Bachelor": 2,
+#             "Master": 3,
+#             "Doctorate": 4
+#         }).fillna(-1)
+
+#     # Payment History (same mapping, if categorical)
+#     if 'PaymentHistory' in df.columns:
+#         if df['PaymentHistory'].dtype == object:
+#             df['PaymentHistory'] = df['PaymentHistory'].replace({
+#                 "High School": 0,
+#                 "Associate": 1,
+#                 "Bachelor": 2,
+#                 "Master": 3,
+#                 "Doctorate": 4
+#             }).fillna(-1)
+
+#     # Encode label columns
+#     label_cols = ['MaritalStatus', 'HomeOwnershipStatus', 'LoanPurpose']
+#     for col in label_cols:
+#         if col in df.columns and df[col].dtype == object:
+#             le = LabelEncoder()
+#             df[col] = le.fit_transform(df[col].astype(str))
+
+#     # Select numeric columns (excluding object types)
+#     num_cols = df.select_dtypes(exclude='object').columns.tolist()
+
+#     # Remove unwanted columns if present
+#     for col in ['RiskScore', 'LoanApproved', 'ApplicationDate']:
+#         if col in num_cols:
+#             num_cols.remove(col)
+
+#     # Standard scaling
+#     scaler = StandardScaler()
+#     for col in num_cols:
+#         df[col] = scaler.fit_transform(df[[col]])
+
+#     # Power transformation (only for positive & variable columns)
+#     transform_cols = [
+#         col for col in num_cols
+#         if df[col].nunique() > 1 and not (df[col] <= 0).any()
+#         and col not in ['Age', 'Experience', 'PaymentHistory', 'LengthOfCreditHistory',
+#                         'JobTenure', 'BaseInterestRate', 'InterestRate',
+#                         'LoanApproved', 'ApplicationDate']
+#     ]
+
+#     pt = PowerTransformer(method='yeo-johnson')
+#     for col in transform_cols:
+#         try:
+#             df[col] = pt.fit_transform(df[[col]])
+#         except Exception as e:
+#             print(f"Skipping transformation for '{col}' due to error: {e}")
+#             df[col] = np.log1p(df[col].clip(lower=0))
+
+#     # Final cleanup
+#     df = df.drop(columns=['RiskScore', 'LoanApproved', 'ApplicationDate'], errors='ignore')
+#     print("Columns after regression preprocessing:", df.columns)
+
+#     return df.values
+
+
+
+
+
 def preprocess_input_for_regression(data):
     df = pd.DataFrame([data])
 
     # Normalize column names: remove spaces and strip
     df.columns = df.columns.str.strip().str.replace(" ", "")
 
-    # Yes/No fields
-    yes_no_columns = ['BankruptcyHistory', 'PreviousLoanDefaults']
+    # Yes/No fields (from health_mapping)
+    yes_no_columns = ['BankruptcyHistory', 'PreviousLoanDefaults', 'HasCrCard', 'IsActiveMember']
     yes_no_mapping = {"Yes": 1, "No": 0}
 
     for col in yes_no_columns:
@@ -64,43 +161,67 @@ def preprocess_input_for_regression(data):
                 print(f"Error converting {col} to int: {e}")
                 df[col] = df[col].fillna(0)
 
-    # Employment Status
+    # EmploymentStatus Mapping (from health_mapping)
     employment_mapping = {
-        'Employed': 0,
-        'Self-employed': 1,
-        'Unemployed': 2
+        "Full-Time Employed": 0,
+        "Government Employee": 0,
+        "Self-Employed": 1,
+        "Part-Time/Freelance": 2,
+        "Unemployed": 3
     }
-    for col in ['EmploymentStatus', 'Employmentstatus']:  # in case of variation
+    for col in ['EmploymentStatus', 'Employmentstatus']:  # just in case
         if col in df.columns:
             df[col] = df[col].map(employment_mapping).fillna(-1)
 
-    # Education Level
+    # EducationLevel Mapping (from health_mapping)
+    education_mapping = {
+        "Doctorate/Master's": 3,
+        "Bachelor's Degree": 2,
+        "Diploma/High School": 1,
+        "Below High School": 0
+    }
     if 'EducationLevel' in df.columns:
-        df['EducationLevel'] = df['EducationLevel'].replace({
-            "High School": 0,
-            "Associate": 1,
-            "Bachelor": 2,
-            "Master": 3,
-            "Doctorate": 4
-        }).fillna(-1)
+        df['EducationLevel'] = df['EducationLevel'].map(education_mapping).fillna(-1)
 
-    # Payment History (same mapping, if categorical)
+    # PaymentHistory Mapping (from health_mapping)
+    payment_history_mapping = {
+        "High": 2,
+        "Middle": 1,
+        "Low": 0
+    }
     if 'PaymentHistory' in df.columns:
         if df['PaymentHistory'].dtype == object:
-            df['PaymentHistory'] = df['PaymentHistory'].replace({
-                "High School": 0,
-                "Associate": 1,
-                "Bachelor": 2,
-                "Master": 3,
-                "Doctorate": 4
-            }).fillna(-1)
+            df['PaymentHistory'] = df['PaymentHistory'].map(payment_history_mapping).fillna(-1)
 
-    # Encode label columns
-    label_cols = ['MaritalStatus', 'HomeOwnershipStatus', 'LoanPurpose']
-    for col in label_cols:
-        if col in df.columns and df[col].dtype == object:
-            le = LabelEncoder()
-            df[col] = le.fit_transform(df[col].astype(str))
+    # MaritalStatus Mapping (from health_mapping)
+    marital_status_mapping = {
+        "Married": 2,
+        "Single": 1,
+        "Divorced/Separated": 0
+    }
+    if 'MaritalStatus' in df.columns:
+        df['MaritalStatus'] = df['MaritalStatus'].map(marital_status_mapping).fillna(-1)
+
+    # HomeOwnershipStatus Mapping (from health_mapping)
+    home_ownership_mapping = {
+        "Own Home": 2,
+        "Mortgage": 1,
+        "Renting": 0
+    }
+    if 'HomeOwnershipStatus' in df.columns:
+        df['HomeOwnershipStatus'] = df['HomeOwnershipStatus'].map(home_ownership_mapping).fillna(-1)
+
+    # LoanPurpose Mapping (from health_mapping)
+    loan_purpose_mapping = {
+        "Home Purchase": 5,
+        "Education Loan": 4,
+        "Car Loan": 3,
+        "Medical Loan": 2,
+        "Personal Loan": 1,
+        "Vacation/Leisure Loan": 0
+    }
+    if 'LoanPurpose' in df.columns:
+        df['LoanPurpose'] = df['LoanPurpose'].map(loan_purpose_mapping).fillna(-1)
 
     # Select numeric columns (excluding object types)
     num_cols = df.select_dtypes(exclude='object').columns.tolist()
@@ -137,6 +258,7 @@ def preprocess_input_for_regression(data):
     print("Columns after regression preprocessing:", df.columns)
 
     return df.values
+
 
 def risk_assessment_prediction(input_data):
     processed_data = preprocess_input_for_regression(input_data)

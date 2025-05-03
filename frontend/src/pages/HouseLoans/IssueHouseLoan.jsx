@@ -2,14 +2,20 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams } from "react-router-dom";
 import HouseLoanInterestRate from "./HouseLoanInterestRate";
-import EMIAnalysis from "./EMIAnalysis";
+import HouseLoanInterestRateDisplay from "./HouseLoanInterestRateDisplay";
 
 const FLASK_API_URL = import.meta.env.VITE_FLASK_URL; // Should end with `/api`
 const decryptCustomerId = (token) => atob(token);
 
 const IssueHouseLoan = () => {
     const { token } = useParams();
+
     const customerId = decryptCustomerId(token);
+
+    const [bpsLoadingStep, setBpsLoadingStep] = useState(null);
+    const [bpsError, setBpsError] = useState(false);
+
+
 
     const [customerData, setCustomerData] = useState(null);
     const [loanTypes, setLoanTypes] = useState({});
@@ -17,7 +23,7 @@ const IssueHouseLoan = () => {
     const [loanAmount, setLoanAmount] = useState("");
     const [loanDurationYears, setLoanDurationYears] = useState(1);
     const [receivedData, setReceivedData] = useState(null);
-    const [showEmiAnalysis, setShowEmiAnalysis] = useState(false);
+    const [receivedBpsData, setReceivedBpsData] = useState(null);
 
     useEffect(() => {
         axios
@@ -50,15 +56,46 @@ const IssueHouseLoan = () => {
             BaseRate: baseRate,
         };
 
+        // Clear previous data
+        localStorage.removeItem("emiData");
+        localStorage.removeItem("emiBpsData");
+
+        setBpsLoadingStep("Processing customer data...");
+        setBpsError(false);
+
+
         axios
             .post(`${FLASK_API_URL}/house_loan_predict/`, requestData)
             .then((response) => {
                 setReceivedData(response.data);
-                setShowEmiAnalysis(false);
+                // Store new data
+                localStorage.setItem("emiData", JSON.stringify(response.data));
             })
             .catch((error) =>
                 console.error("Error fetching predicted interest rate:", error)
             );
+        setBpsLoadingStep("Processing customer data...");
+        setBpsError(false);
+
+        axios
+            .post(`${FLASK_API_URL}/house_loan_predictor/`, requestData)
+            .then((response) => {
+                setBpsLoadingStep("Fetching market trends...");
+                setTimeout(() => {
+                    setBpsLoadingStep("Calculating final BPS...");
+                    setTimeout(() => {
+                        setReceivedBpsData(response.data);
+                        localStorage.setItem("emiBpsData", JSON.stringify(response.data));
+                        setBpsLoadingStep(null); // clear loading state
+                    }, 1000);
+                }, 1000);
+            })
+            .catch((error) => {
+                console.error("Error fetching predicted BPS rate:", error);
+                setBpsLoadingStep(null);
+                setBpsError(true);
+            });
+
     };
 
     const formatNumberIndian = (num) => {
@@ -106,6 +143,16 @@ const IssueHouseLoan = () => {
             }
         }
         return words.trim();
+    };
+
+
+    const handleEmiClick = () => {
+        const newUrl = `/employee/issue-loan/emi-analysis/${token}`;
+        window.open(newUrl, "_blank");
+    };
+    const handleBpsTableClick = () => {
+        const newUrl = `/employee/issue-loan/bps-breakdown/${token}`;
+        window.open(newUrl, "_blank");
     };
 
     const totalMonths = loanDurationYears * 12;
@@ -220,25 +267,44 @@ const IssueHouseLoan = () => {
             )}
 
             {receivedData && (
+                <div className="mt-10">
+                    <HouseLoanInterestRate receivedData={receivedData} />
+                </div>
+            )}
+            {bpsLoadingStep && (
+                <div className="mt-10 text-center text-blue-600 font-medium">
+                    {bpsLoadingStep}
+                </div>
+            )}
+
+            {bpsError && (
+                <div className="mt-10 text-center text-red-600 font-semibold">
+                    Failed to calculate BPS. Please try again later.
+                </div>
+            )}
+
+            {receivedBpsData && (
                 <>
                     <div className="mt-10">
-                        <HouseLoanInterestRate receivedData={receivedData} />
+                        <HouseLoanInterestRateDisplay receivedBpsData={receivedBpsData} />
                     </div>
-
                     <div className="text-center mt-6">
                         <button
-                            onClick={() => setShowEmiAnalysis(true)}
+                            onClick={handleEmiClick}
                             className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded"
                         >
                             Calculate EMI
                         </button>
                     </div>
+                    <div className="text-center mt-6">
+                        <button
+                            onClick={handleBpsTableClick}
+                            className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2 rounded"
+                        >
+                            View Bps BreakDown
+                        </button>
+                    </div>
 
-                    {showEmiAnalysis && (
-                        <div className="mt-6">
-                            <EMIAnalysis response_data={receivedData} />
-                        </div>
-                    )}
                 </>
             )}
         </div>

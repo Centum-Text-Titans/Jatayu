@@ -4,10 +4,11 @@ import SearchCustomerFd from "../FixedDeposits/SearchCustomerFd";
 import ViewFixedDepositSlabTable from "../FixedDeposits/ViewFixedDepositSlabTable";
 import CalculateRate from "../HouseLoans/CalculateRate";
 import ViewCustomers from "../HouseLoans/ViewCustomers";
-import ChatBot from "../Tools/Chatbot";
+// import ChatBot from "../Tools/Chatbot";
 import ViewHouseLoanSlabTable from "../HouseLoans/ViewHouseLoanSlabTable";
 import SearchCustomer from "../HouseLoans/SearchCustomer";
 import ViewCustomersFd from "../FixedDeposits/ViewCustomersFd";
+import CustomerAgent from "../Agent/CustomerAgent";
 
 
 export default function EmployeeDashboard() {
@@ -28,6 +29,9 @@ export default function EmployeeDashboard() {
             if (activeSubMenu === "search_or_add_hl") return <SearchCustomer />;
             if (activeSubMenu === "view_customers_hl") return <ViewCustomers />;
             if (activeSubMenu === "slab_table_hl") return <ViewHouseLoanSlabTable />;
+        }
+        else if (activeLoanType === "ai") {
+            if (activeSubMenu === "agent") return <CustomerAgent />;
         }
         return <div>Select an option from the menu.</div>;
     };
@@ -64,6 +68,18 @@ export default function EmployeeDashboard() {
                                 }`}
                         >
                             Fixed Deposits
+                        </button>
+                        <button
+                            onClick={() => {
+                                setActiveLoanType("ai");
+                                setActiveSubMenu("agent");
+                            }}
+                            className={`px-4 py-2 rounded-full transition-colors ${activeLoanType === "ai"
+                                ? "bg-blue-500 text-white"
+                                : "bg-gray-200 text-gray-700"
+                                }`}
+                        >
+                            Customer Analysis
                         </button>
 
                     </div>
@@ -183,9 +199,9 @@ export default function EmployeeDashboard() {
             </div>
 
             {/* Chat Bot fixed to bottom right */}
-            <div className="fixed bottom-4 right-4">
+            {/* <div className="fixed bottom-4 right-4">
                 <ChatBot />
-            </div>
+            </div> */}
         </div>
     );
 }
