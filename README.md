@@ -213,11 +213,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 📞 Contact
-
-For inquiries or collaboration, reach out at:  
-**Email:** your.email@domain.com  
-**LinkedIn:** [Your LinkedIn Profile](https://www.linkedin.com/in/your-profile)
-
----
 
